@@ -48,11 +48,11 @@ export async function fetchNftItems(network: ApiNetwork, addresses: string[]) {
 }
 
 export async function fetchAccountNfts(network: ApiNetwork, address: string, options?: {
-  collection?: string;
+  collectionAddress?: string;
   offset?: number;
   limit?: number;
 }) {
-  const { collection, offset, limit } = options ?? {};
+  const { collectionAddress, offset, limit } = options ?? {};
 
   return (await getApi(network).accounts.getAccountNftItems(
     address,
@@ -60,7 +60,7 @@ export async function fetchAccountNfts(network: ApiNetwork, address: string, opt
       offset: offset ?? 0,
       limit: limit ?? MAX_LIMIT,
       indirect_ownership: true,
-      collection,
+      collection: collectionAddress,
     },
   )).nft_items;
 }

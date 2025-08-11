@@ -28,7 +28,6 @@ import useLastCallback from '../../../../hooks/useLastCallback';
 
 import AnimatedIconWithPreview from '../../../ui/AnimatedIconWithPreview';
 import Spinner from '../../../ui/Spinner';
-import Transition from '../../../ui/Transition';
 import Nft from './Nft';
 
 import styles from './Nft.module.scss';
@@ -65,7 +64,7 @@ function Nfts({
   whitelistedNftAddresses,
   isViewAccount,
 }: OwnProps & StateProps) {
-  const { clearNftsSelection } = getActions();
+  const { fetchNftsFromCollection, clearNftsSelection } = getActions();
 
   const lang = useLang();
   const containerRef = useRef<HTMLDivElement>();
@@ -73,6 +72,12 @@ function Nfts({
   const hasSelection = Boolean(selectedAddresses?.length);
   const [isScrolled, setIsScrolled] = useState(false);
   const scrollContainerClosest = getScrollContainerClosestSelector(true, isPortrait) || '.nfts-container';
+
+  useEffect(() => {
+    if (currentCollectionAddress) {
+      fetchNftsFromCollection({ collectionAddress: currentCollectionAddress });
+    }
+  }, [currentCollectionAddress]);
 
   useEffect(clearNftsSelection, [clearNftsSelection, isActive, currentCollectionAddress]);
   useEffect(() => (hasSelection ? captureEscKeyListener(clearNftsSelection) : undefined), [hasSelection]);
@@ -188,13 +193,7 @@ function Nfts({
   }
 
   return (
-    <Transition
-      ref={containerRef}
-      name="fade"
-      activeKey={nfts.length}
-      shouldCleanup
-      slideClassName={buildClassName(styles.list, isLandscape && styles.landscapeList)}
-    >
+    <div ref={containerRef} className={buildClassName(styles.list, isLandscape && styles.landscapeList)}>
       {nfts.map((nft) => (
         <Nft
           key={nft.address}
@@ -205,7 +204,7 @@ function Nfts({
           observeIntersection={observeIntersection}
         />
       ))}
-    </Transition>
+    </div>
   );
 }
 

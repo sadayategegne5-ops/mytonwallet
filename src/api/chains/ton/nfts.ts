@@ -33,12 +33,16 @@ import {
 import { checkMultiTransactionDraft, checkToAddress, submitMultiTransfer } from './transfer';
 import { isActiveSmartContract } from './wallet';
 
-export async function getAccountNfts(accountId: string, offset?: number, limit?: number): Promise<ApiNft[]> {
+export async function getAccountNfts(accountId: string, options?: {
+  collectionAddress?: string;
+  offset?: number;
+  limit?: number;
+}): Promise<ApiNft[]> {
   const { network } = parseAccountId(accountId);
   const { address } = await fetchStoredTonWallet(accountId);
   const nftSuperCollectionsByCollectionAddress = await getNftSuperCollectionsByCollectionAddress();
 
-  const rawNfts = await fetchAccountNfts(network, address, { offset, limit });
+  const rawNfts = await fetchAccountNfts(network, address, options);
   return compact(rawNfts.map((rawNft) => parseTonapiioNft(network, rawNft, nftSuperCollectionsByCollectionAddress)));
 }
 

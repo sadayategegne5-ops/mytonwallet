@@ -1,4 +1,4 @@
-import type { ApiNft } from '../types';
+import type { ApiNft, OnApiUpdate } from '../types';
 
 import { TONCOIN } from '../../config';
 import { bigintDivideToNumber } from '../../util/bigint';
@@ -8,9 +8,19 @@ import { createLocalTransactions } from './transactions';
 
 const { ton } = chains;
 
-export async function fetchNfts(accountId: string) {
+let onUpdate: OnApiUpdate;
+
+export function initNfts(_onUpdate: OnApiUpdate) {
+  onUpdate = _onUpdate;
+}
+
+export async function fetchNftsFromCollection(accountId: string, collectionAddress: string) {
   const account = await fetchStoredAccount(accountId);
-  return 'ton' in account ? ton.getAccountNfts(accountId) : [];
+  if (!account.ton) return;
+
+  const nfts = await ton.getAccountNfts(accountId, { collectionAddress });
+
+  onUpdate({ type: 'updateNfts', accountId, nfts, shouldAppend: true });
 }
 
 export function checkNftTransferDraft(options: {

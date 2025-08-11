@@ -388,7 +388,9 @@ function Content({
 
     if (currentCollectionAddress && tabs[activeTabIndex].id !== ContentTab.Nft) {
       return (
-        <Nfts key={`custom:${currentCollectionAddress}`} isActive={isActive} />
+        <div className="nfts-container">
+          <Nfts key={`custom:${currentCollectionAddress}`} isActive={isActive} />
+        </div>
       );
     }
 

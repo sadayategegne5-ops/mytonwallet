@@ -1,8 +1,7 @@
-import {
-  BURN_ADDRESS, NOTCOIN_EXCHANGERS, NOTCOIN_VOUCHERS_ADDRESS, TONCOIN,
-} from '../../../config';
+import { BURN_ADDRESS, NOTCOIN_EXCHANGERS, NOTCOIN_VOUCHERS_ADDRESS, TONCOIN } from '../../../config';
 import { findDifference } from '../../../util/iteratees';
 import { IS_DELEGATING_BOTTOM_SHEET } from '../../../util/windowEnvironment';
+import { callApi } from '../../../api';
 import { addActionHandler } from '../../index';
 import { updateCurrentAccountState } from '../../reducers';
 import { selectCurrentAccountState } from '../../selectors';
@@ -10,6 +9,10 @@ import { selectCurrentAccountState } from '../../selectors';
 import { getIsPortrait } from '../../../hooks/useDeviceScreen';
 
 const NBS_INIT_TIMEOUT = IS_DELEGATING_BOTTOM_SHEET ? 100 : 0;
+
+addActionHandler('fetchNftsFromCollection', (global, actions, { collectionAddress }) => {
+  void callApi('fetchNftsFromCollection', global.currentAccountId!, collectionAddress);
+});
 
 addActionHandler('burnNfts', (global, actions, { nfts }) => {
   actions.startTransfer({

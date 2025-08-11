@@ -172,8 +172,10 @@ function DappTransferModal({
       noBackdropClose
       dialogClassName={buildClassName(styles.modalDialog, needsExtraHeight && styles.modalDialogExtraHeight)}
       nativeBottomSheetKey="dapp-transfer"
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      forceFullNative={needsExtraHeight || renderingKey === TransferState.Password}
+      forceFullNative={
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+        (needsExtraHeight || renderingKey === TransferState.Password) && renderingKey !== TransferState.Complete
+      }
       onClose={closeDappTransfer}
       onCloseAnimationEnd={handleResetTransfer}
     >

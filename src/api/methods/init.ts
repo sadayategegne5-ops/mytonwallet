@@ -28,6 +28,7 @@ export default async function init(onUpdate: OnApiUpdate, args: ApiInitArgs) {
   methods.initTransactions(onUpdate);
   methods.initStaking();
   methods.initSwap(onUpdate);
+  methods.initNfts(onUpdate);
 
   if (environment.isDappSupported) {
     methods.initDapps(onUpdate);

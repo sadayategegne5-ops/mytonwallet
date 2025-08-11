@@ -195,6 +195,7 @@ export type ApiUpdateNfts = {
   type: 'updateNfts';
   accountId: string;
   nfts: ApiNft[];
+  shouldAppend?: boolean;
 };
 
 export type ApiUpdateNftReceived = {

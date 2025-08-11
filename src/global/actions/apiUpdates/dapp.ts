@@ -174,6 +174,10 @@ addActionHandler('apiUpdate', (global, actions, update) => {
     }
 
     case 'dappTransferComplete': {
+      if (IS_DELEGATING_BOTTOM_SHEET) {
+        callActionInNative('apiUpdate', update);
+      }
+
       if (global.currentDappTransfer.state !== TransferState.None) {
         global = updateCurrentDappTransfer(global, {
           state: TransferState.Complete,
@@ -185,6 +189,10 @@ addActionHandler('apiUpdate', (global, actions, update) => {
     }
 
     case 'dappSignDataComplete': {
+      if (IS_DELEGATING_BOTTOM_SHEET) {
+        callActionInNative('apiUpdate', update);
+      }
+
       if (global.currentDappSignData.state !== SignDataState.None) {
         global = updateCurrentDappSignData(global, {
           state: SignDataState.Complete,

@@ -944,13 +944,13 @@ export interface ActionPayloads {
   fetchTokenTransactions: { limit: number; slug: string; shouldLoadWithBudget?: boolean };
   fetchAllTransactions: { limit: number; shouldLoadWithBudget?: boolean };
   resetIsHistoryEndReached: { slug: string } | undefined;
-  fetchNfts: undefined;
   showActivityInfo: { id: string };
   showAnyAccountTx: { txId: string; accountId: string; network: ApiNetwork };
   showAnyAccountTokenActivity: { slug: string; accountId: string; network: ApiNetwork };
   showTokenActivity: { slug: string };
   closeActivityInfo: { id: string };
   fetchActivityDetails: { id: string };
+  fetchNftsFromCollection: { collectionAddress: string };
   openNftCollection: { address: string };
   closeNftCollection: undefined;
   selectNfts: { addresses: string[] };

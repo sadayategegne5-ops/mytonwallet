@@ -48,7 +48,7 @@ import { TsUSDeWallet } from './contracts/Ethena/TsUSDeWallet';
 import { StakeWallet } from './contracts/JettonStaking/StakeWallet';
 import { StakingPool } from './contracts/JettonStaking/StakingPool';
 import { NominatorPool } from './contracts/NominatorPool';
-import { fetchStoredTonWallet } from '../../common/accounts';
+import { fetchStoredTonAccount, fetchStoredTonWallet } from '../../common/accounts';
 import { callBackendGet } from '../../common/backend';
 import { getAccountCache, getStakingCommonCache, updateAccountCache } from '../../common/cache';
 import { getClientId } from '../../common/other';
@@ -627,8 +627,8 @@ function getLiquidStakingTimeRange(commonData: ApiStakingCommonData) {
 }
 
 export async function getBackendStakingState(accountId: string): Promise<ApiBackendStakingState> {
-  const { address } = await fetchStoredTonWallet(accountId);
-  const state = await fetchBackendStakingState(address);
+  const account = await fetchStoredTonAccount(accountId);
+  const state = await fetchBackendStakingState(account.ton.address, account.type === 'view');
   return {
     ...state,
     nominatorsPool: {
@@ -639,9 +639,11 @@ export async function getBackendStakingState(accountId: string): Promise<ApiBack
   };
 }
 
-export async function fetchBackendStakingState(address: string): Promise<ApiBackendStakingState> {
+export async function fetchBackendStakingState(address: string, isViewOnly: boolean): Promise<ApiBackendStakingState> {
   const clientId = await getClientId();
-  const stakingState = await callBackendGet(`/staking/state/${address}`, undefined, {
+  const stakingState = await callBackendGet(`/staking/state/${address}`, {
+    isViewMode: isViewOnly ? 1 : undefined,
+  }, {
     'X-App-ClientID': clientId,
   });
 

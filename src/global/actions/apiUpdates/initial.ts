@@ -12,7 +12,7 @@ import { buildCollectionByKey, unique } from '../../../util/iteratees';
 import { callActionInNative } from '../../../util/multitab';
 import { openUrl } from '../../../util/openUrl';
 import { IS_DELEGATING_BOTTOM_SHEET, IS_IOS_APP } from '../../../util/windowEnvironment';
-import { addActionHandler, getGlobal, setGlobal } from '../../index';
+import { addActionHandler, setGlobal } from '../../index';
 import {
   addNft,
   addUnorderedNfts,
@@ -109,15 +109,20 @@ addActionHandler('apiUpdate', (global, actions, update) => {
     }
 
     case 'updateNfts': {
-      const { accountId } = update;
+      const { accountId, shouldAppend } = update;
       const nfts = buildCollectionByKey(update.nfts, 'address');
-      global = getGlobal();
       const currentNfts = selectAccountState(global, accountId)?.nfts;
+      const newOrderedAddresses = Object.keys(nfts);
+
       global = updateAccountState(global, accountId, {
         nfts: {
           ...currentNfts,
           byAddress: { ...nfts, ...currentNfts?.byAddress },
-          orderedAddresses: unique([...Object.keys(nfts), ...currentNfts?.orderedAddresses || []]),
+          orderedAddresses: unique(
+            shouldAppend
+              ? ([] as string[]).concat(currentNfts?.orderedAddresses ?? [], newOrderedAddresses)
+              : ([] as string[]).concat(newOrderedAddresses, currentNfts?.orderedAddresses ?? []),
+          ),
         },
       });
 
@@ -342,11 +347,13 @@ addActionHandler('apiUpdate', (global, actions, update) => {
       } = update;
       const nfts = selectAccountState(global, accountId)?.nfts || { byAddress: {} };
 
-      global = updateAccountState(global, accountId, { nfts: {
-        ...nfts,
-        dnsExpiration: expirationByAddress,
-        linkedAddressByAddress,
-      } });
+      global = updateAccountState(global, accountId, {
+        nfts: {
+          ...nfts,
+          dnsExpiration: expirationByAddress,
+          linkedAddressByAddress,
+        },
+      });
       global = addUnorderedNfts(global, accountId, updatedNfts);
       setGlobal(global);
       break;
