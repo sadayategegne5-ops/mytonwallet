@@ -100,10 +100,6 @@ export type ApiSwapAsset = {
   color?: string;
 };
 
-export type ApiSwapTonAsset = ApiSwapAsset & {
-  chain: 'ton';
-};
-
 export type ApiSwapPairAsset = {
   symbol: string;
   slug: string;

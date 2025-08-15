@@ -123,7 +123,10 @@ function Content({
           tabs={tabs}
           activeTab={activeTab}
           className={buildClassName(styles.tabs, !isStatic && styles.tabsInModal)}
-          overlayClassName={styles.tabsOverlay}
+          overlayClassName={buildClassName(
+            styles.tabsOverlay,
+            activeTab === TRON_TAB_ID && styles.tronActive,
+          )}
           onSwitchTab={handleSwitchTab}
         />
       )}

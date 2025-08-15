@@ -814,7 +814,7 @@ function parseCommonFields(
     isIncoming,
     normalizedAddress,
     amount,
-    isPending: isPending || undefined,
+    status: isPending ? 'pending' : action.success ? 'completed' : 'failed',
   } satisfies Partial<ApiTransactionActivity>;
 }
 

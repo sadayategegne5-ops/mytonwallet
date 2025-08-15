@@ -14,6 +14,7 @@ import { getChainConfig } from '../../../util/chain';
 import isEmptyObject from '../../../util/isEmptyObject';
 import { logDebugError } from '../../../util/logs';
 import { createTaskQueue } from '../../../util/schedulers';
+import { getTokenSlugs } from './util/tokens';
 import { enrichActivities } from '../../common/activities';
 import { activeWalletTiming, inactiveWalletTiming } from '../../common/polling/utils';
 import { WalletPolling } from '../../common/polling/walletPolling';
@@ -143,9 +144,7 @@ function setupActivityPolling(
   onUpdatingStatusChange: (isUpdating: boolean) => void,
 ) {
   const { network } = parseAccountId(accountId);
-  const { usdtAddress } = getChainConfig('tron')[network];
-  const usdtSlug = buildTokenSlug('tron', usdtAddress);
-  const slugs = [TRX.slug, usdtSlug];
+  const slugs = getTokenSlugs(network);
 
   async function update() {
     onUpdatingStatusChange(true);

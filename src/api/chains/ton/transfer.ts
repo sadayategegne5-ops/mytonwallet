@@ -112,14 +112,7 @@ export async function checkTransactionDraft(
 
     const { isInitialized } = await getContractInfo(network, toAddress);
 
-    if (stateInitString && !isBase64Data) {
-      return {
-        ...result,
-        error: ApiTransactionDraftError.StateInitWithoutBin,
-      };
-    }
-
-    let stateInit;
+    let stateInit: Cell | undefined;
 
     if (stateInitString) {
       try {
@@ -172,7 +165,7 @@ export async function checkTransactionDraft(
     }
 
     let toncoinAmount: bigint;
-    const toncoinBalance = await getWalletBalance(network, wallet);
+    const { seqno, balance: toncoinBalance } = await getWalletInfo(network, wallet);
     let balance: bigint;
     let fee: bigint;
     let realFee: bigint;
@@ -220,6 +213,7 @@ export async function checkTransactionDraft(
       stateInit,
       isFullBalance: isFullTonTransfer,
       shouldEncrypt,
+      seqno,
     });
     // todo: Use `received` from the emulation to calculate the real fee. Check what happens when the receiver is the same wallet.
     const { networkFee } = applyFeeFactorToEmulationResult(
@@ -329,6 +323,7 @@ export async function submitTransfer(options: ApiSubmitTransferOptions): Promise
     shouldEncrypt,
     isBase64Data,
     forwardAmount,
+    noFeeCheck,
   } = options;
   let { stateInit } = options;
 
@@ -376,11 +371,10 @@ export async function submitTransfer(options: ApiSubmitTransferOptions): Promise
     }
 
     const { pendingTransfer } = await waitAndCreatePendingTransfer(network, fromAddress);
-
-    const toncoinBalance = await getWalletBalance(network, wallet);
+    const { seqno, balance: toncoinBalance } = await getWalletInfo(network, wallet);
     const isFullTonTransfer = !tokenAddress && toncoinBalance === amount;
 
-    const { seqno, transaction } = await signTransaction({
+    const { transaction } = await signTransaction({
       network,
       wallet,
       toAddress,
@@ -390,16 +384,19 @@ export async function submitTransfer(options: ApiSubmitTransferOptions): Promise
       privateKey: secretKey,
       isFullBalance: isFullTonTransfer,
       shouldEncrypt,
+      seqno,
     });
 
-    const { networkFee } = await emulateTransactionWithFallback(network, wallet, transaction, isInitialized);
+    if (!noFeeCheck) {
+      const { networkFee } = await emulateTransactionWithFallback(network, wallet, transaction, isInitialized);
 
-    const isEnoughBalance = isFullTonTransfer
-      ? toncoinBalance > networkFee
-      : toncoinBalance >= toncoinAmount + networkFee;
+      const isEnoughBalance = isFullTonTransfer
+        ? toncoinBalance > networkFee
+        : toncoinBalance >= toncoinAmount + networkFee;
 
-    if (!isEnoughBalance) {
-      return { error: ApiTransactionError.InsufficientBalance };
+      if (!isEnoughBalance) {
+        return { error: ApiTransactionError.InsufficientBalance };
+      }
     }
 
     const client = getTonClient(network);
@@ -566,6 +563,7 @@ async function signTransaction({
   isFullBalance,
   expireAt,
   shouldEncrypt,
+  seqno,
 }: {
   network: ApiNetwork;
   wallet: TonWallet;
@@ -577,8 +575,9 @@ async function signTransaction({
   isFullBalance?: boolean;
   expireAt?: number;
   shouldEncrypt?: boolean;
+  seqno?: number;
 }) {
-  const { seqno } = await getWalletInfo(network, wallet);
+  seqno ??= (await getWalletInfo(network, wallet)).seqno;
 
   if (!privateKey) {
     privateKey = new Uint8Array(64);
@@ -727,15 +726,28 @@ async function isTokenBalanceInsufficient(
   // Accumulate token amounts by address
   const tokenAmountsByAddress: Record<string, bigint> = {};
   const parsedPayloads = payloadParsingResults.map((result) => result?.parsedPayload);
+  let hasUnknownToken = false;
 
   for (const result of payloadParsingResults) {
     if (result?.tokenResult) {
       const { tokenAddress, amount } = result.tokenResult;
+
+      if (!tokenAddress) {
+        // Possible when the jetton wallet is not deployed, therefore the minter address is unknown and set to "".
+        // This is handled in `parsePayloadSlice`. If the sender jetton wallet is not deployed, assuming the balance is 0.
+        hasUnknownToken = true;
+        continue;
+      }
+
       if (!tokenAmountsByAddress[tokenAddress]) {
         tokenAmountsByAddress[tokenAddress] = 0n;
       }
       tokenAmountsByAddress[tokenAddress] += amount;
     }
+  }
+
+  if (hasUnknownToken) {
+    return { hasInsufficientTokenBalance: true, parsedPayloads };
   }
 
   const tokenAddresses = Object.keys(tokenAmountsByAddress);

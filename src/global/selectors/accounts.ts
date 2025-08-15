@@ -9,16 +9,6 @@ import isViewAccount from '../../util/isViewAccount';
 import memoize from '../../util/memoize';
 import withCache from '../../util/withCache';
 
-export function selectIsNewWallet(global: GlobalState, isFirstTransactionsLoaded: boolean) {
-  const { activities } = selectCurrentAccountState(global) ?? {};
-
-  if (activities?.idsMain?.length) {
-    return false;
-  }
-
-  return isFirstTransactionsLoaded;
-}
-
 export function selectAccounts(global: GlobalState) {
   return global.accounts?.byId;
 }
@@ -47,6 +37,21 @@ export function selectCurrentAccount(global: GlobalState) {
 
 export function selectAccount(global: GlobalState, accountId: string) {
   return selectAccounts(global)?.[accountId];
+}
+
+export function selectAccountOrAuthAccount(global: GlobalState, accountId: string) {
+  const account = selectAccount(global, accountId);
+  if (account) {
+    return account;
+  }
+
+  for (const account of [global.auth.firstNetworkAccount, global.auth.secondNetworkAccount]) {
+    if (account?.accountId === accountId) {
+      return account;
+    }
+  }
+
+  return undefined;
 }
 
 export function selectCurrentAccountState(global: GlobalState) {

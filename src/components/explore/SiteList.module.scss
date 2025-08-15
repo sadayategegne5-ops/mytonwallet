@@ -10,7 +10,7 @@
     --header-padding-top: 0.75rem;
   }
 
-  // Fix for opera, dead zone of 37 pixels in extension window on windows
+  // Fix for Opera, dead zone of 37 pixels in extension window on Windows
   :global(html.is-windows.is-opera.is-extension) & {
     --header-padding-top: 2.3125rem;
   }

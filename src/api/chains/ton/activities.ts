@@ -1,6 +1,6 @@
 import type { ApiActivity, ApiNetwork, ApiSwapActivity, ApiTransactionActivity } from '../../types';
 import type { AnyAction, CallContractAction, JettonTransferAction, SwapAction } from './toncenter/types';
-import type { ParsedTrace } from './types';
+import type { ParsedTrace, ParsedTracePart } from './types';
 
 import { TONCOIN } from '../../../config';
 import { parseAccountId } from '../../../util/account';
@@ -12,7 +12,7 @@ import { pause } from '../../../util/schedulers';
 import withCacheAsync from '../../../util/withCacheAsync';
 import { resolveTokenWalletAddress } from './util/tonCore';
 import { fetchStoredTonWallet } from '../../common/accounts';
-import { getTokenBySlug } from '../../common/tokens';
+import { getTokenBySlug, tokensPreload } from '../../common/tokens';
 import { SEC } from '../../constants';
 import { OpCode, OUR_FEE_PAYLOAD_BOC } from './constants';
 import { fetchActions, fetchTransactions, parseActionActivityId, parseLiquidityDeposit } from './toncenter';
@@ -60,13 +60,16 @@ export async function fetchActivitySlice(
       shouldIncludeFrom,
     });
   } else {
+    let tokenWalletAddress = address;
+
+    if (tokenSlug !== TONCOIN.slug) {
+      await tokensPreload.promise;
+      tokenWalletAddress = await resolveTokenWalletAddress(network, address, getTokenBySlug(tokenSlug).tokenAddress!);
+    }
+
     const activities = await fetchActions({
       network,
-      filter: {
-        address: tokenSlug === TONCOIN.slug
-          ? address
-          : await resolveTokenWalletAddress(network, address, getTokenBySlug(tokenSlug).tokenAddress!),
-      },
+      filter: { address: tokenWalletAddress },
       walletAddress: address,
       limit: limit ?? GET_TRANSACTIONS_LIMIT,
       fromTimestamp,
@@ -141,11 +144,7 @@ export function calculateActivityDetails(
 
   const actionHashes = new Set(action.transactions);
 
-  const {
-    sent,
-    received,
-    networkFee,
-  } = byTransactionIndex.find((item) => {
+  const tracePart = byTransactionIndex.find((item) => {
     return intersection(item.hashes, actionHashes).size;
   })!;
 
@@ -153,19 +152,19 @@ export function calculateActivityDetails(
 
   if (activity.kind === 'swap') {
     result = setSwapDetails({
-      parsedTrace, activity, action: action as SwapAction, sent, received, networkFee,
+      parsedTrace, activity, action: action as SwapAction, tracePart,
     });
   } else {
     result = setTransactionDetails({
-      parsedTrace, activity, action, sent, received, networkFee,
+      parsedTrace, activity, action, tracePart,
     });
   }
 
   logDebug('Calculation of fee for action', {
     actionId: action.action_id,
     externalMsgHashNorm: activity.externalMsgHashNorm,
-    isPending: getIsActivityPending(activity),
-    networkFee: toDecimal(networkFee),
+    activityStatus: activity.status,
+    networkFee: toDecimal(tracePart.networkFee),
     realFee: toDecimal(getActivityRealFee(result.activity)),
     sentForFee: toDecimal(result.sentForFee),
     excess: toDecimal(result.excess),
@@ -179,27 +178,28 @@ function setSwapDetails(options: {
   parsedTrace: ParsedTrace;
   action: SwapAction;
   activity: ApiSwapActivity;
-  sent: bigint;
-  received: bigint;
-  networkFee: bigint;
+  tracePart: ParsedTracePart;
 }): ActivityDetailsResult {
-  const { action, networkFee, received, sent, parsedTrace: { actions } } = options;
+  const { action, tracePart, parsedTrace: { actions } } = options;
   let { activity } = options;
 
   const { details } = action;
 
-  let sentForFee = sent;
-  let excess = received;
+  let sentForFee = tracePart.sent;
+  let excess = tracePart.received;
 
-  if (!details.asset_in) {
-    // TON -> token
-    sentForFee -= BigInt(details.dex_incoming_transfer.amount);
-  } else if (!details.asset_out) {
-    // Token -> TON
-    excess -= BigInt(details.dex_outgoing_transfer.amount);
+  // When the transaction is failed, its `sent` and `received` are always 0 (as defined in `parseFailedTransactions`)
+  if (tracePart.isSuccess) {
+    if (!details.asset_in) {
+      // TON -> token
+      sentForFee -= BigInt(details.dex_incoming_transfer.amount);
+    } else if (!details.asset_out) {
+      // Token -> TON
+      excess -= BigInt(details.dex_outgoing_transfer.amount);
+    }
   }
 
-  const realFee = networkFee + sentForFee - excess;
+  const realFee = tracePart.networkFee + sentForFee - excess;
 
   activity = {
     ...activity,
@@ -212,14 +212,14 @@ function setSwapDetails(options: {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       return _action.type === 'call_contract' && Number(_action.details.opcode) === OpCode.OurFee;
     }) as CallContractAction | undefined;
-    if (ourFeeAction) {
+    if (ourFeeAction?.success) {
       ourFee = BigInt(ourFeeAction.details.value);
     }
   } else {
     const ourFeeAction = actions.find((_action) => {
       return _action.type === 'jetton_transfer' && _action.details.forward_payload === OUR_FEE_PAYLOAD_BOC;
     }) as JettonTransferAction | undefined;
-    if (ourFeeAction) {
+    if (ourFeeAction?.success) {
       ourFee = BigInt(ourFeeAction.details.amount);
     }
   }
@@ -238,14 +238,11 @@ function setTransactionDetails(options: {
   parsedTrace: ParsedTrace;
   action: AnyAction;
   activity: ApiTransactionActivity;
-  sent: bigint;
-  received: bigint;
-  networkFee: bigint;
+  tracePart: ParsedTracePart;
 }): ActivityDetailsResult {
   const {
     action,
-    received,
-    sent,
+    tracePart,
     parsedTrace: {
       addressBook,
       totalSent,
@@ -254,9 +251,8 @@ function setTransactionDetails(options: {
     },
   } = options;
 
-  let { activity, networkFee } = options;
-  let sentForFee = sent;
-  let excess = received;
+  let { activity } = options;
+  let { networkFee, sent: sentForFee, received: excess } = tracePart;
 
   switch (action.type) {
     case 'ton_transfer':
@@ -312,6 +308,12 @@ function setTransactionDetails(options: {
       excess /= 2n;
       break;
     }
+  }
+
+  // When the transaction is failed, its `sent` and `received` are always 0 (as defined in `parseFailedTransactions`)
+  if (!tracePart.isSuccess) {
+    sentForFee = 0n;
+    excess = 0n;
   }
 
   const realFee = networkFee + sentForFee - excess;

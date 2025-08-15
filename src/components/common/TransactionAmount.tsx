@@ -2,6 +2,7 @@ import React, { memo } from '../../lib/teact/teact';
 
 import type { ApiBaseCurrency, ApiTokenWithPrice } from '../../api/types';
 
+import { UNKNOWN_TOKEN } from '../../config';
 import { bigintAbs } from '../../util/bigint';
 import buildClassName from '../../util/buildClassName';
 import { toDecimal } from '../../util/decimals';
@@ -16,6 +17,7 @@ interface OwnProps {
   token?: Pick<ApiTokenWithPrice, 'decimals' | 'symbol' | 'price'>;
   isIncoming?: boolean;
   isScam?: boolean;
+  isFailed?: boolean;
   status?: string;
   noSign?: boolean;
   isSensitiveDataHidden?: true;
@@ -25,6 +27,7 @@ interface OwnProps {
 function TransactionAmount({
   isIncoming,
   isScam,
+  isFailed,
   amount,
   token,
   status,
@@ -32,10 +35,12 @@ function TransactionAmount({
   isSensitiveDataHidden,
   baseCurrency,
 }: OwnProps) {
-  const typeClass = isScam ? styles.operationScam : isIncoming ? styles.operationPositive : undefined;
+  const typeClass = isFailed || isScam
+    ? styles.operationNegative
+    : isIncoming ? styles.operationPositive : undefined;
 
   function renderAmount() {
-    const { decimals, symbol } = token ?? {};
+    const { decimals, symbol } = token ?? UNKNOWN_TOKEN;
     const amountString = toDecimal(noSign ? bigintAbs(amount) : amount, decimals);
     const [wholePart, fractionPart]
       = formatCurrencyExtended(amountString, '', noSign, decimals, !isIncoming).split('.');

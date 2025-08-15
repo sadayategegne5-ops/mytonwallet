@@ -16,7 +16,7 @@ $scrollOffset: 0.1875rem;
   max-height: none;
   padding: 0 0.75rem !important;
 
-  // Fix for opera, dead zone of 37 pixels in extension window on windows
+  // Fix for Opera, dead zone of 37 pixels in extension window on Windows
   :global(html.is-windows.is-opera.is-extension) & {
     padding-top: 1.875rem !important;
   }

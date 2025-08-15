@@ -5,6 +5,7 @@ export type ApiEmulationResult = {
   networkFee: bigint;
   /** How much TON will return back as a result of the transactions */
   received: bigint;
+  /** Sometimes the array contains fewer indices than the number of transactions */
   byTransactionIndex: ParsedTracePart[];
   /** What else should happen after submitting the transactions (in addition to the transactions and the returned TON) */
   activities: ApiActivity[];

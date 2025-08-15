@@ -46,6 +46,7 @@ export interface ApiSubmitTransferOptions {
   stateInit?: string | Cell;
   isGaslessWithStars?: boolean;
   forwardAmount?: bigint;
+  noFeeCheck?: boolean;
 }
 
 export type ApiSubmitTransferResult = ApiSubmitTransferTonResult | ApiSubmitTransferTronResult;

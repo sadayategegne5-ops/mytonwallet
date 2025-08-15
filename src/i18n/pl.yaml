@@ -138,7 +138,6 @@ Contract Initialization Data: Dane Inicjalizacji Kontraktu
 $dont_have_required_token: Nie masz wymaganego tokena, ale można go wymienić.
 $unknown_token_address: Nieznany adres tokena.
 $dont_have_required_nft: Nie masz wymaganego NFT do wysłania.
-$state_init_requires_bin: Dane inicjalizacji kontraktu wymagają parametru "bin".
 $state_init_invalid: Nieprawidłowe dane inicjalizacji kontraktu.
 $signature_warning: Podpisywanie niestandardowych danych jest bardzo niebezpieczne. Używaj go tylko wtedy, gdy ufasz jego źródłu.
 Sign: Znak
@@ -401,7 +400,6 @@ $auth_backup_description3: |
 Swap Placed: Wymiana złożona
 Swapping: Wymienianie
 Swapped: Wymienione
-Swap Failed: Wymiana nieudana
 Swap Again: Wymień ponownie
 Terms of Use: Warunki korzystania
 Privacy Policy: Polityka prywatności
@@ -426,8 +424,6 @@ Please contact support and provide a transaction ID.: Skontaktuj się z pomocą 
 Exchange failed and coins were refunded to your wallet.: Wymiana nie powiodła się, a monety zostały zwrócone na twój portfel.
 Please contact security team to pass the KYC procedure.: Skontaktuj się z zespołem ds. bezpieczeństwa, aby przejść procedurę KYC.
 Swap Expired: Wymiana wygasła
-Swap On Hold: Wymiana wstrzymana
-Swap Refunded: Wymiana zwrócona
 Address for %blockchain% transfer: Adres do przelewu %blockchain%
 Cross-chain exchange provided by Changelly: Wymiana międzyłańcuchowa dostarczana przez Changelly
 $swap_changelly_agreement_message: Kontynuując, zgadzasz się na %terms% i %policy% oraz rozumiesz, że transakcja może wymagać weryfikacji zgodnie z %kyc%.
@@ -594,6 +590,9 @@ Get Support: Uzyskaj pomoc
 $transfer_inactive_contract_error: |
   Wprowadzono adres w formacie „EQ...”, ale adres nie jest aktywny, więc transakcja nie zostanie zakończona.
   Jeśli na pewno chcesz wysłać na ten adres, wprowadź adres w formacie „UQ...”.
+$transfer_link_expired: Link do transferu wygasł
+$transfer_text_and_bin_exclusive: Nie można używać razem parametrów tekstu i danych binarnych
+$unsupported_deeplink_parameter: Ten deeplink zawiera nieobsługiwane parametry
 Successfully: Pomyślnie
 Unstake More: Cofnij więcej
 WrongAddress: Dapp zażądał transakcji z innego portfela.
@@ -950,4 +949,7 @@ $storage_cleared_message: |
   Dane portfela zostały wyczyszczone z powodu problemów z przeglądarką lub miejscem na dysku. Proszę wylogować się ze wszystkich portfeli, a następnie ręcznie zaimportować je ponownie, używając swoich sekretnych słów.
 
   Jeśli potrzebujesz pomocy, skontaktuj się z %support_link%.
+Telegram Gifts: Prezenty Telegram
 Collectibles: Kolekcjonerskie
+Bluetooth unavailable: Bluetooth niedostępne
+$bluetooth_enable_guide: Włącz Bluetooth w ustawieniach urządzenia i zezwól aplikacji na dostęp do Bluetooth.

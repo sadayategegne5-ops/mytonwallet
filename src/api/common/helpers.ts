@@ -47,7 +47,7 @@ export function buildLocalTransaction(
 
   return updateActivityMetadata({
     id: txId,
-    isPending: true,
+    status: 'pending',
     kind: 'transaction',
     timestamp: Date.now(),
     isIncoming: false,

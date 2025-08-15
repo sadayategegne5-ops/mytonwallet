@@ -47,6 +47,7 @@ type OwnProps = {
   isSeparatePanel?: boolean;
   onTokenClick: (slug: string) => void;
   onStakedTokenClick: (stakingId?: string) => void;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
 };
 
 interface StateProps {
@@ -88,6 +89,7 @@ function Assets({
   isViewMode,
   isSwapDisabled,
   isStakingDisabled,
+  onScroll,
 }: OwnProps & StateProps) {
   const lang = useLang();
   const { openSettingsWithState } = getActions();
@@ -311,6 +313,7 @@ function Assets({
       withAbsolutePositioning={withAbsolutePositioning}
       maxHeight={currentContainerHeight === undefined ? undefined : `${currentContainerHeight}rem`}
       onLoadMore={getMore}
+      onScroll={onScroll}
     >
       {!renderedTokens && (
         <div key="loading" className={isSeparatePanel ? styles.emptyListSeparate : styles.emptyList}>

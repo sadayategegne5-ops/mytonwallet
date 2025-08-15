@@ -1,5 +1,5 @@
 import type {
-  ChangeEvent, FormEvent, KeyboardEvent, RefObject,
+  ChangeEvent, FormEvent, HTMLAttributes, KeyboardEvent, RefObject,
 } from 'react';
 import type { ElementRef, TeactNode } from '../../lib/teact/teact';
 import React, { memo, useState } from '../../lib/teact/teact';
@@ -32,13 +32,14 @@ type OwnProps = {
   autoCapitalize?: string;
   autoComplete?: string;
   autoCorrect?: boolean;
+  isStatic?: boolean;
+  enterKeyHint?: HTMLAttributes<HTMLInputElement>['enterKeyHint'];
   inputArg?: any;
   children?: TeactNode;
   onInput: (value: string, inputArg?: any) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  isStatic?: boolean;
 };
 
 function Input({
@@ -62,12 +63,13 @@ function Input({
   autoCapitalize,
   autoComplete,
   autoCorrect,
+  isStatic,
+  enterKeyHint,
   children,
   onInput,
   onKeyDown,
   onFocus,
   onBlur,
-  isStatic,
 }: OwnProps) {
   const lang = useLang();
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
@@ -168,6 +170,7 @@ function Input({
             tabIndex={0}
             required={isRequired}
             placeholder={valueOverlay ? undefined : placeholder}
+            enterKeyHint={enterKeyHint}
           />
         )}
 

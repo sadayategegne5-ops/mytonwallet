@@ -25,7 +25,7 @@ interface OwnProps {
   appTheme: AppTheme;
   nftsByAddress?: Record<string, ApiNft>;
   currentAccountId: string;
-  stakingStateBySlug?: Record<string, ApiStakingState>;
+  stakingStateBySlug: Record<string, ApiStakingState>;
   savedAddresses?: SavedAddress[];
   accounts?: Record<string, Account>;
   baseCurrency?: ApiBaseCurrency;
@@ -66,7 +66,7 @@ export default function Activity({
     );
   } else {
     const doesNftExist = Boolean(activity.nft && nftsByAddress?.[activity.nft.address]);
-    const { annualYield, yieldType } = stakingStateBySlug?.[activity.slug] ?? {};
+    const { annualYield, yieldType } = stakingStateBySlug[activity.slug] ?? {};
 
     return (
       <Transaction

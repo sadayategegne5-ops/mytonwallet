@@ -1,7 +1,7 @@
 import type { ApiDappTransfer, ApiTokenWithPrice } from '../../api/types';
 import type { GlobalState } from '../types';
 
-import { STON_PTON_SLUG, TONCOIN } from '../../config';
+import { STON_PTON_SLUG, TONCOIN, UNKNOWN_TOKEN } from '../../config';
 import memoize from '../../util/memoize';
 import { isNftTransferPayload, isTokenTransferPayload } from '../../util/ton/transfer';
 import { selectCurrentAccountState } from './accounts';
@@ -51,13 +51,13 @@ const selectDappTransferInsufficientTokensMemoized = memoize((
   const insufficientTokens: string[] = [];
 
   for (const [slug, requiredAmount] of Object.entries(amountsBySlug)) {
-    const token = tokensBySlug[slug];
+    const token = tokensBySlug[slug] ?? UNKNOWN_TOKEN;
 
     const balanceSlug = slug === STON_PTON_SLUG ? TONCOIN.slug : slug;
     const availableBalance = balances[balanceSlug] ?? 0n;
 
     if (availableBalance < requiredAmount) {
-      const symbol = slug === STON_PTON_SLUG ? TONCOIN.symbol : (token?.symbol || slug);
+      const symbol = slug === STON_PTON_SLUG ? TONCOIN.symbol : token.symbol;
       insufficientTokens.push(symbol);
     }
   }

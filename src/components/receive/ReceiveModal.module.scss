@@ -92,7 +92,6 @@
 
 .tabsOverlay {
   --tab-gap-size: 2rem;
-  --red-background-start: 58%;
 
   top: 0.75rem;
 
@@ -101,16 +100,12 @@
   min-width: 100%;
   padding: 0 0.75rem;
 
-  //noinspection CssInvalidFunction
-  background: linear-gradient(
-      90deg,
-      var(--color-activity-blue-background) 0%,
-      var(--color-activity-blue-background) 42%,
-      var(--color-activity-red-background) var(--red-background-start),
-      var(--color-activity-red-background) 100%);
+  background-color: var(--color-activity-blue-background) !important;
 
-  :global(html.theme-dark) & {
-    --red-background-start: 52%;
+  @include mixins.transition('background-color 200ms, clip-path var(--slide-transition)', !important);
+
+  &.tronActive {
+    background-color: var(--color-activity-red-background) !important;
   }
 }
 
@@ -124,12 +119,10 @@
 
 .tabTon:global(.current-tab) {
   color: var(--color-activity-blue);
-  background-color: var(--color-activity-blue-background) !important;
 }
 
 .tabTron:global(.current-tab) {
   color: var(--color-activity-red-text);
-  background-color: var(--color-activity-red-background) !important;
 }
 
 .qrCode {

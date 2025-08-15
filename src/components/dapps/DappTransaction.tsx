@@ -4,7 +4,7 @@ import type { ApiDappTransfer, ApiToken } from '../../api/types';
 
 import { TONCOIN } from '../../config';
 import buildClassName from '../../util/buildClassName';
-import { isKeyCountGreater } from '../../util/isEmptyObject';
+import isEmptyObject from '../../util/isEmptyObject';
 import { isNftTransferPayload, isTokenTransferPayload } from '../../util/ton/transfer';
 
 import useHistoryBack from '../../hooks/useHistoryBack';
@@ -58,37 +58,26 @@ function DappTransactionContent({
   tokensBySlug,
 }: Required<Pick<OwnProps, 'transaction' | 'tokensBySlug'>>) {
   const lang = useLang();
-  const tonAmountBySlug = useMemo(() => ({
-    [TONCOIN.slug]: transaction.networkFee,
-  }), [transaction]);
 
-  function renderAmount() {
-    if (isNftTransferPayload(transaction.payload)) {
-      if (transaction.amount === 0n) {
-        return undefined;
-      }
-
-      return (
-        <DappAmountField
-          label={lang('Additional Amount Sent')}
-          amountsBySlug={tonAmountBySlug}
-        />
-      );
-    }
-
+  const amountBySlug = useMemo(() => {
+    const { amount: tonAmount, payload } = transaction;
     const amountBySlug: Record<string, bigint> = {};
 
-    if (isTokenTransferPayload(transaction.payload)) {
-      amountBySlug[transaction.payload.slug] = transaction.payload.amount;
-    }
-    amountBySlug[TONCOIN.slug] = transaction.amount;
-
-    if (amountBySlug[TONCOIN.slug] === 0n && isKeyCountGreater(amountBySlug, 1)) {
-      delete amountBySlug[TONCOIN.slug];
+    if (isTokenTransferPayload(payload)) {
+      amountBySlug[payload.slug] = payload.amount;
     }
 
-    return <DappAmountField label={lang('Amount')} amountsBySlug={amountBySlug} />;
-  }
+    if (tonAmount !== 0n || (!isNftTransferPayload(payload) && isEmptyObject(amountBySlug))) {
+      amountBySlug[TONCOIN.slug] = tonAmount;
+    }
+
+    return amountBySlug;
+  }, [transaction]);
+
+  const feeBySlug = useMemo(
+    () => ({ [TONCOIN.slug]: transaction.networkFee }),
+    [transaction.networkFee],
+  );
 
   return (
     <>
@@ -101,8 +90,13 @@ function DappTransactionContent({
         className={buildClassName(styles.dataField, styles.receivingAddress)}
         copyNotification={lang('Address was copied!')}
       />
-      {renderAmount()}
-      <DappAmountField label={lang('Fee')} amountsBySlug={tonAmountBySlug} />
+      {!isEmptyObject(amountBySlug) && (
+        <DappAmountField
+          label={isNftTransferPayload(transaction.payload) ? lang('Additional Amount Sent') : lang('Amount')}
+          amountsBySlug={amountBySlug}
+        />
+      )}
+      <DappAmountField label={lang('Fee')} amountsBySlug={feeBySlug} />
       <DappTransactionPayload transaction={transaction} tokensBySlug={tokensBySlug} />
     </>
   );

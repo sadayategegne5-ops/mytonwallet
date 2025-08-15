@@ -202,10 +202,10 @@ addActionHandler('apiUpdate', (global, actions, update) => {
           [chain]: address,
         };
       }
-      if (domain !== false) {
+      if (domain !== undefined) {
         accountUpdate.domainByChain = {
           ...account.domainByChain,
-          [chain]: domain,
+          [chain]: domain || undefined,
         };
       }
       global = updateAccount(global, accountId, accountUpdate);

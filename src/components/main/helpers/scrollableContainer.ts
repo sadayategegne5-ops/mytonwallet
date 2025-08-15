@@ -1,3 +1,5 @@
+import { ACTIVE_SLIDE_CLASS_NAME } from '../../ui/Transition';
+
 /** Finds the appropriate scrollable container */
 export function getScrollableContainer(
   element: HTMLElement | null | undefined,
@@ -18,7 +20,7 @@ export function getScrollableContainer(
 
 // In portrait mode, find the parent `.app-slide-content` container, which contains the all app scrollable content
 function getScrollableContainerSelector(isPortrait?: boolean) {
-  return isPortrait ? '.app-slide-content' : '.custom-scroll';
+  return isPortrait ? '.app-slide-content' : `.custom-scroll.${ACTIVE_SLIDE_CLASS_NAME}`;
 }
 
 export function getScrollContainerClosestSelector(isActive?: boolean, isPortrait?: boolean) {

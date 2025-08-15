@@ -60,8 +60,6 @@ const TON_DNS_INTERVAL = { focused: 15 * SEC, notFocused: 2 * MINUTE };
 const NFT_FULL_INTERVAL = { focused: MINUTE, notFocused: 5 * MINUTE };
 const DOUBLE_CHECK_NFT_PAUSE = 5 * SEC;
 
-const MAX_ACTIVITY_LOAD_CONCURRENCY = 10;
-
 const inactiveUpdateConcurrencyLimiter = createTaskQueue();
 
 export function setupActivePolling(
@@ -84,7 +82,6 @@ export function setupActivePolling(
     accountId,
     account.ton.address,
     newestActivityTimestamps,
-    balanceAndDomainPolling.getBalances,
     handleWalletUpdate,
     onUpdate,
     onUpdatingStatusChange.bind(undefined, 'activities'),
@@ -217,7 +214,6 @@ function setupActivityPolling(
   accountId: string,
   address: string,
   newestConfirmedActivityTimestamps: ApiActivityTimestamps,
-  getBalances: () => Promise<ApiBalanceBySlug>,
   onRawActivity: NoneToVoidFunction,
   onUpdate: OnApiUpdate,
   onUpdatingStatusChange: (isUpdating: boolean) => void,
@@ -232,8 +228,7 @@ function setupActivityPolling(
   async function loadInitialActivities() {
     try {
       onUpdatingStatusChange(true);
-      const tokenSlugs = Object.keys(await getBalances());
-      return await loadInitialConfirmedActivities(accountId, tokenSlugs, onUpdate);
+      return await loadInitialConfirmedActivities(accountId, onUpdate);
     } catch (err) {
       logDebugError('loadInitialConfirmedActivities', err);
       return undefined;
@@ -388,39 +383,17 @@ function setupStakingPolling(accountId: string, getBalances: () => Promise<ApiBa
   }).stop;
 }
 
-async function loadInitialConfirmedActivities(accountId: string, tokenSlugs: string[], onUpdate: OnApiUpdate) {
-  const concurrencyLimiter = createTaskQueue(MAX_ACTIVITY_LOAD_CONCURRENCY);
+async function loadInitialConfirmedActivities(accountId: string, onUpdate: OnApiUpdate) {
+  let mainActivities = await fetchActivitySlice(accountId, undefined, undefined, undefined, FIRST_TRANSACTIONS_LIMIT);
+  mainActivities = await enrichActivities(accountId, mainActivities, undefined, true);
 
-  const bySlug: Record<string, ApiActivity[]> = {};
-  let mainActivities: ApiActivity[] = [];
+  const bySlug = {
+    // Loading the TON history is a side effect of loading the main history.
+    // Because there is no way to load TON activities without loading activities of other tokens.
+    [TONCOIN.slug]: mainActivities.filter((activity) => getActivityTokenSlugs(activity).includes(TONCOIN.slug)),
+  };
 
-  let newestActivityTimestamp: number | undefined;
-
-  const loadTokenActivity = concurrencyLimiter.wrap(async (slug: string) => {
-    try {
-      const tokenSlug = slug !== TONCOIN.slug ? slug : undefined;
-      let activities = await fetchActivitySlice(accountId, tokenSlug, undefined, undefined, FIRST_TRANSACTIONS_LIMIT);
-
-      activities = await enrichActivities(accountId, activities, slug, true);
-
-      if (slug === TONCOIN.slug && activities.length) {
-        // Activities for each Jetton wallet are loaded only the first time.
-        // New token activities will be loaded along with TON.
-        newestActivityTimestamp = activities[0].timestamp;
-
-        // There is no way to load TON activities without loading activities of other tokens
-        mainActivities = activities;
-        activities = activities.filter((activity) => getActivityTokenSlugs(activity).includes(TONCOIN.slug));
-      }
-
-      bySlug[slug] = activities;
-    } catch (err) {
-      // If a token history fails to load, the UI will re-request its history when the user opens its activity feed
-      logDebugError('loadTokenActivity', slug, err);
-    }
-  });
-
-  await Promise.allSettled(tokenSlugs.map(loadTokenActivity));
+  const newestActivityTimestamp = mainActivities[0]?.timestamp;
 
   onUpdate({
     type: 'initialActivities',

@@ -43,6 +43,7 @@ export type TransitionProps = {
   onStart?: NoneToVoidFunction;
   onStop?: NoneToVoidFunction;
   onContainerClick?: NoneToVoidFunction;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   // Should be not a falsy value, otherwise some transitions will be delayed
   children: TeactNode | ChildrenFn;
 };
@@ -79,6 +80,7 @@ function Transition({
   onStart,
   onStop,
   onContainerClick,
+  onScroll,
   children,
 }: TransitionProps) {
   const currentKeyRef = useRef<number>();
@@ -364,6 +366,7 @@ function Transition({
   return (
     <div
       ref={containerRef}
+      onScroll={onScroll}
       onClick={onContainerClick}
       id={id}
       className={buildClassName('Transition', className)}

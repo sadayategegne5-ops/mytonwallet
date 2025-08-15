@@ -1,5 +1,7 @@
 import type { GlobalState } from '../types';
 
+import { replaceActivityId } from '../helpers/misc';
+
 export function updateCurrentDomainRenewal(
   global: GlobalState,
   update: Partial<GlobalState['currentDomainRenewal']>,
@@ -28,20 +30,14 @@ export function updateCurrentDomainLinking(
 
 /** replaceMap: keys - old (removed) activity ids, value - new (added) activity ids */
 export function replaceCurrentDomainRenewalId(global: GlobalState, replaceMap: Record<string, string>) {
-  const oldTxId = global.currentDomainRenewal.txId;
-  const newTxId = oldTxId && replaceMap[oldTxId];
-  if (newTxId !== oldTxId) {
-    global = updateCurrentDomainRenewal(global, { txId: newTxId });
-  }
-  return global;
+  return updateCurrentDomainRenewal(global, {
+    txId: replaceActivityId(global.currentDomainRenewal.txId, replaceMap),
+  });
 }
 
 /** replaceMap: keys - old (removed) activity ids, value - new (added) activity ids */
 export function replaceCurrentDomainLinkingId(global: GlobalState, replaceMap: Record<string, string>) {
-  const oldTxId = global.currentDomainLinking.txId;
-  const newTxId = oldTxId && replaceMap[oldTxId];
-  if (newTxId !== oldTxId) {
-    global = updateCurrentDomainLinking(global, { txId: newTxId });
-  }
-  return global;
+  return updateCurrentDomainLinking(global, {
+    txId: replaceActivityId(global.currentDomainLinking.txId, replaceMap),
+  });
 }

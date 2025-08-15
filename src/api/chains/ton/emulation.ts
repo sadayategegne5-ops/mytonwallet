@@ -34,21 +34,6 @@ export async function emulateTransaction(
   return parseEmulation(network, walletAddress, emulation, nftSuperCollectionsByCollectionAddress);
 }
 
-function parseFailedEmulation(emulation: EmulationResponse) {
-  const fallbackFee = Object.values(emulation.transactions).reduce((acc, tx) => {
-    const { total_fees: totalFees } = tx;
-    return acc + BigInt(totalFees);
-  }, 0n);
-
-  return {
-    networkFee: fallbackFee,
-    received: 0n,
-    byTransactionIndex: [],
-    activities: [],
-    realFee: fallbackFee,
-  };
-}
-
 function parseEmulation(
   network: ApiNetwork,
   walletAddress: string,
@@ -105,11 +90,6 @@ function parseEmulation(
     addExcessActivity(walletAddress, walletActivities, totalExcess);
   }
 
-  if (allActivities.length === 0) {
-    // Expected to happen when the wallet balance is insufficient
-    return parseFailedEmulation(emulation);
-  }
-
   return {
     networkFee: parsedTrace.totalNetworkFee,
     received: parsedTrace.totalReceived,
@@ -144,6 +124,7 @@ function addExcessActivity(walletAddress: string, activities: ApiActivity[], exc
       isIncoming: true,
       fee: 0n,
       type: 'excess',
+      status: 'completed',
     });
   }
 }

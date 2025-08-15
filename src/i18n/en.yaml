@@ -136,7 +136,6 @@ Contract Initialization Data: Contract Initialization Data
 $dont_have_required_token: You don’t have the required token to send, but it can be swapped.
 $unknown_token_address: Unknown token address.
 $dont_have_required_nft: You don’t have the required NFT to send.
-$state_init_requires_bin: Contract initialization data requires the bin parameter.
 $state_init_invalid: Invalid contract initialization data.
 $signature_warning: Signing custom data is very dangerous. Use it only if you trust the source of it.
 Sign: Sign
@@ -398,7 +397,6 @@ $auth_backup_description3: |
 Swap Placed: Swap Placed
 Swapping: Swapping
 Swapped: Swapped
-Swap Failed: Swap Failed
 Swap Again: Swap Again
 Terms of Use: Terms of Use
 Privacy Policy: Privacy Policy
@@ -422,8 +420,6 @@ $swap_changelly_to_ton_description1: Send %value% to this address in %blockchain
 Exchange failed and coins were refunded to your wallet.: Exchange failed and coins were refunded to your wallet.
 $swap_changelly_kyc_security: "Please contact **%email%** and provide **Transaction ID** to pass the KYC procedure:"
 Swap Expired: Swap Expired
-Swap On Hold: Swap On Hold
-Swap Refunded: Swap Refunded
 Address for %blockchain% transfer: Address for %blockchain% transfer
 Cross-chain exchange provided by Changelly: Cross-chain exchange provided by Changelly
 $swap_changelly_agreement_message: By continuing, you agree to the %terms% and %policy% and understand that the transaction may trigger verification according to %kyc%.
@@ -588,6 +584,9 @@ Get Support: Get Support
 $transfer_inactive_contract_error: |
   You entered an address in the "EQ..." format, but the address is not active, so the transaction will not be completed.
   If you definitely want to send to this address, then enter the address in the "UQ..." format.
+$transfer_link_expired: Transfer link has expired
+$transfer_text_and_bin_exclusive: Cannot use both text and bin parameters together
+$unsupported_deeplink_parameter: This deeplink contains unsupported parameters
 Successfully: Successfully
 Unstake More: Unstake More
 WrongAddress: The dapp requested a transaction from another wallet.
@@ -934,4 +933,7 @@ $storage_cleared_message: |
   Your wallet data has been cleared due to browser-related or disk space issues. Please log out from all wallets and then re-import them manually using your secret words.
 
   If you need assistance, please contact %support_link%.
+Telegram Gifts: Telegram Gifts
 Collectibles: Collectibles
+Bluetooth unavailable: Bluetooth unavailable
+$bluetooth_enable_guide: Turn on Bluetooth in the device settings and allow the app to access Bluetooth.

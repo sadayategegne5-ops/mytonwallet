@@ -12,7 +12,7 @@ import type {
 } from '../../api/types';
 import type { Account, SavedAddress, Theme } from '../../global/types';
 
-import { TONCOIN } from '../../config';
+import { TONCOIN, UNKNOWN_TOKEN } from '../../config';
 import renderText from '../../global/helpers/renderText';
 import {
   selectAccountStakingStatesBySlug,
@@ -65,7 +65,7 @@ interface StateProps {
   theme: Theme;
   nftsByAddress?: Record<string, ApiNft>;
   currentAccountId: string;
-  stakingStateBySlug?: Record<string, ApiStakingState>;
+  stakingStateBySlug: Record<string, ApiStakingState>;
   savedAddresses?: SavedAddress[];
   accounts?: Record<string, Account>;
   insufficientTokens?: string;
@@ -170,11 +170,8 @@ function DappTransferInitial({
       amountText.push('1 NFT');
     } else if (isTokenTransferPayload(payload)) {
       const { slug: tokenSlug, amount } = payload;
-      const token = tokensBySlug[tokenSlug];
-      if (token) {
-        const { decimals, symbol } = token;
-        amountText.push(formatCurrency(toDecimal(amount, decimals), symbol));
-      }
+      const { decimals, symbol } = tokensBySlug[tokenSlug] ?? UNKNOWN_TOKEN;
+      amountText.push(formatCurrency(toDecimal(amount, decimals), symbol));
     }
 
     amountText.push(formatCurrency(toDecimal(transaction.amount + transaction.networkFee), TONCOIN.symbol));

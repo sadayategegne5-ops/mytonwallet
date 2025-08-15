@@ -192,6 +192,7 @@ function CreatePasswordForm({
             onBlur={unmarkPasswordFocused}
             className={styles.input}
             maxLength={isMobile ? PIN_LENGTH : undefined}
+            enterKeyHint="next"
           />
           <Input
             type="password"
@@ -207,6 +208,7 @@ function CreatePasswordForm({
             onBlur={unmarkSecondPasswordFocused}
             className={styles.input}
             maxLength={isMobile ? PIN_LENGTH : undefined}
+            enterKeyHint="next"
           />
         </div>
 

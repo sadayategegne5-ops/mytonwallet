@@ -99,8 +99,8 @@ export interface ApiTransaction {
   type?: ApiTransactionType;
   metadata?: ApiTransactionMetadata;
   nft?: ApiNft;
-  /** True if awaiting confirmation by the blockchain */
-  isPending?: true;
+  /** 'pending' if awaiting confirmation by the blockchain */
+  status: 'pending' | 'completed' | 'failed';
 }
 
 export type ApiTransactionMetadata = ApiAddressInfo;
@@ -285,10 +285,12 @@ export interface ApiSignedTransfer {
  * The `fee` field should contain the final (real) fee, because we want to show the real fee in local transactions
  */
 export type ApiLocalTransactionParams = Omit<
-  ApiTransactionActivity, 'id' | 'timestamp' | 'isIncoming' | 'normalizedAddress' | 'kind' | 'shouldLoadDetails'
+  ApiTransactionActivity,
+  'id' | 'timestamp' | 'isIncoming' | 'normalizedAddress' | 'kind' | 'shouldLoadDetails' | 'status'
 > & {
   normalizedAddress?: string;
   isIncoming?: boolean;
+  status?: ApiTransactionActivity['status'];
 };
 
 export type ApiBaseCurrency = 'USD' | 'EUR' | 'RUB' | 'CNY' | 'BTC' | 'TON';

@@ -40,6 +40,7 @@ let isNativeBiometricAuthSupported = false;
 let isFaceIdAvailable = false;
 let isTouchIdAvailable = false;
 let statusBarHeight = 0;
+let safeAreaTop = 0;
 
 let capacitorAppLaunchDeeplinkProcessedAt = 0;
 const CAPACITOR_APP_URL_OPEN_EVENT_IGNORE_DELAY_MS = 500;
@@ -61,7 +62,8 @@ export async function initCapacitor() {
     document.documentElement.style.setProperty('--status-bar-height', `${height}px`);
   });
 
-  void SafeArea.getSafeAreaInsets().then(({ insets: { bottom } }) => {
+  void SafeArea.getSafeAreaInsets().then(({ insets: { bottom, top } }) => {
+    safeAreaTop = top;
     document.documentElement.style.setProperty('--safe-area-bottom', `${bottom}px`);
   });
 
@@ -129,6 +131,10 @@ export async function initCapacitorWithGlobal(authConfig?: AuthConfig) {
 
 export function getStatusBarHeight() {
   return statusBarHeight;
+}
+
+export function getSafeAreaTop() {
+  return safeAreaTop;
 }
 
 export function getIsCapacitorBiometricAuthSupported() {

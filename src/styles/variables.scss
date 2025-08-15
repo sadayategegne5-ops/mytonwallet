@@ -241,7 +241,7 @@
     --slide-transition: 350ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  // Fix for opera, dead zone of 37 pixels in extension window on windows
+  // Fix for Opera, dead zone of 37 pixels in extension window on Windows
   &.is-windows.is-opera.is-extension {
     --sticky-card-height: #{v.$portraitHeaderHeight + 2.3125rem};
   }

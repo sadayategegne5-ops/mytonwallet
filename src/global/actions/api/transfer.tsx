@@ -237,7 +237,7 @@ addActionHandler('submitTransferPassword', async (global, actions, { password })
     global = setIsPinAccepted(global);
   }
   setGlobal(global);
-  await vibrateOnSuccess(true);
+  await vibrateOnSuccess();
 
   if (promiseId) {
     if (getDoesUsePinPad()) {
@@ -299,6 +299,7 @@ addActionHandler('submitTransferPassword', async (global, actions, { password })
       dieselAmount: diesel && getDieselTokenAmount(diesel),
       stateInit,
       isGaslessWithStars,
+      noFeeCheck: true,
     };
 
     result = await callApi('submitTransfer', chain, options);

@@ -234,10 +234,6 @@ addActionHandler('showError', (global, actions, { error } = {}) => {
       actions.showDialog({ message: 'Invalid address' });
       break;
 
-    case ApiTransactionDraftError.StateInitWithoutBin:
-      actions.showDialog({ message: '$state_init_requires_bin' });
-      break;
-
     case ApiTransactionDraftError.InvalidStateInit:
       actions.showDialog({ message: '$state_init_invalid' });
       break;

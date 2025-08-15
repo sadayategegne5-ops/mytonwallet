@@ -51,6 +51,7 @@ import styles from './Explore.module.scss';
 
 interface OwnProps {
   isActive?: boolean;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
 }
 
 interface StateProps {
@@ -68,7 +69,7 @@ const enum SLIDES {
 }
 
 function Explore({
-  isActive, categories, sites: originalSites, shouldRestrict, browserHistory, currentSiteCategoryId,
+  isActive, categories, sites: originalSites, shouldRestrict, browserHistory, currentSiteCategoryId, onScroll,
 }: OwnProps & StateProps) {
   const {
     loadExploreSites,
@@ -92,6 +93,7 @@ function Explore({
   const prevSiteCategoryIdRef = useStateRef(usePrevious2(renderingKey));
   const { disableSwipeToClose, enableSwipeToClose } = useTelegramMiniAppSwipeToClose(isActive);
 
+  // On desktop should be used external scroll detection via `onScroll` prop
   const {
     handleScroll: handleContentScroll,
     isScrolled,
@@ -250,7 +252,7 @@ function Explore({
         return (
           <div
             className={buildClassName(styles.slide, 'custom-scroll')}
-            onScroll={isPortrait ? handleContentScroll : undefined}
+            onScroll={isPortrait ? handleContentScroll : onScroll}
           >
             <div className={buildClassName(styles.searchWrapper, 'with-notch-on-scroll', isScrolled && 'is-scrolled')}>
               {renderSearch()}

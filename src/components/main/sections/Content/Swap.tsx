@@ -4,7 +4,7 @@ import React, { memo, useMemo } from '../../../../lib/teact/teact';
 
 import type { ApiSwapActivity, ApiSwapAsset } from '../../../../api/types';
 import type { Account, AppTheme } from '../../../../global/types';
-import type { Color as PendingIndicatorColor } from './ActivityPendingIndicator';
+import type { Color as PendingIndicatorColor } from './ActivityStatusIcon';
 
 import { TONCOIN, WHOLE_PART_DELIMITER } from '../../../../config';
 import { getIsInternalSwap, resolveSwapAsset } from '../../../../global/helpers';
@@ -19,7 +19,7 @@ import useLang from '../../../../hooks/useLang';
 import TokenIcon from '../../../common/TokenIcon';
 import Button from '../../../ui/Button';
 import SensitiveData from '../../../ui/SensitiveData';
-import ActivityPendingIndicator from './ActivityPendingIndicator';
+import ActivityStatusIcon from './ActivityStatusIcon';
 
 import styles from './Activity.module.scss';
 
@@ -105,12 +105,12 @@ function Swap({
 
     return (
       <i className={buildClassName('icon-swap', styles.icon, statusClass)} aria-hidden>
-        <ActivityPendingIndicator
-          isActive={isPending}
+        <ActivityStatusIcon
+          isPending={isPending}
+          isError={isError}
           color={pendingIndicatorColor}
           appTheme={appTheme}
         />
-        {isError && <i className={buildClassName(styles.iconError, 'icon-close-filled')} aria-hidden />}
       </i>
     );
   }

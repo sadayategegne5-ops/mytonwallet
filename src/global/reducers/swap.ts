@@ -2,6 +2,7 @@ import type { GlobalState } from '../types';
 import { SwapState } from '../types';
 
 import { DEFAULT_SLIPPAGE_VALUE } from '../../config';
+import { replaceActivityId } from '../helpers/misc';
 import {
   doesSwapChangeRequireDexUnselect,
   doesSwapChangeRequireEstimation,
@@ -59,10 +60,7 @@ export function clearCurrentSwap(global: GlobalState) {
 
 /** replaceMap: keys - old (removed) activity ids, value - new (added) activity ids */
 export function replaceCurrentSwapId(global: GlobalState, replaceMap: Record<string, string>) {
-  const oldSwapId = global.currentSwap.activityId;
-  const newSwapId = oldSwapId && replaceMap[oldSwapId];
-  if (newSwapId !== oldSwapId) {
-    global = updateCurrentSwap(global, { activityId: newSwapId });
-  }
-  return global;
+  return updateCurrentSwap(global, {
+    activityId: replaceActivityId(global.currentSwap.activityId, replaceMap),
+  });
 }

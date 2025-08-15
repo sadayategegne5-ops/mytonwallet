@@ -2,6 +2,7 @@ import type { ApiCheckTransactionDraftResult } from '../../api/chains/ton/types'
 import type { GlobalState } from '../types';
 
 import { pick } from '../../util/iteratees';
+import { replaceActivityId } from '../helpers/misc';
 import { INITIAL_STATE } from '../initialState';
 import { selectCurrentTransferMaxAmount, selectTokenMatchingCurrentTransferAddressSlow } from '../selectors';
 
@@ -69,10 +70,7 @@ export function setCurrentTransferAddress(global: GlobalState, toAddress: string
 
 /** replaceMap: keys - old (removed) activity ids, value - new (added) activity ids */
 export function replaceCurrentTransferId(global: GlobalState, replaceMap: Record<string, string>) {
-  const oldTxId = global.currentTransfer.txId;
-  const newTxId = oldTxId && replaceMap[oldTxId];
-  if (newTxId !== oldTxId) {
-    global = updateCurrentTransfer(global, { txId: newTxId });
-  }
-  return global;
+  return updateCurrentTransfer(global, {
+    txId: replaceActivityId(global.currentTransfer.txId, replaceMap),
+  });
 }

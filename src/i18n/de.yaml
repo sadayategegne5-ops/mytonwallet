@@ -136,7 +136,6 @@ Contract Initialization Data: Vertrag Initialisierung Daten
 $dont_have_required_token: Sie haben den erforderlichen Token nicht, aber er kann umgetauscht werden.
 $unknown_token_address: Unbekannte Token-Adresse.
 $dont_have_required_nft: Sie haben das erforderliche NFT nicht, um es zu senden.
-$state_init_requires_bin: Die Vertragsinitialisierungsdaten erfordern den Parameter "bin".
 $state_init_invalid: Ungültige Vertragsinitialisierungsdaten.
 $signature_warning: Das Signieren von benutzerdefinierten Daten ist sehr gefährlich. Verwenden Sie es nur, wenn Sie der Quelle vertrauen.
 Sign: Signieren
@@ -399,7 +398,6 @@ $auth_backup_description3: |
 Swap Placed: Tausch platziert
 Swapping: Tausch läuft
 Swapped: Getauscht
-Swap Failed: Tausch fehlgeschlagen
 Swap Again: Erneut tauschen
 Terms of Use: Nutzungsbedingungen
 Privacy Policy: Datenschutzrichtlinie
@@ -423,8 +421,6 @@ $swap_changelly_to_ton_description1: Sie müssen %value% an diese Adresse in der
 Exchange failed and coins were refunded to your wallet.: Der Austausch ist fehlgeschlagen, und die Coins wurden an Ihre Wallet zurückerstattet.
 $swap_changelly_kyc_security: "Bitte kontaktieren Sie **%email%** und geben Sie die **Transaktions-ID** an, um das KYC-Verfahren zu bestehen:"
 Swap Expired: Tausch abgelaufen
-Swap On Hold: Tausch in Wartestellung
-Swap Refunded: Tausch erstattet
 Address for %blockchain% transfer: Adresse für %blockchain%-Übertragung
 Cross-chain exchange provided by Changelly: Cross-Chain-Austausch bereitgestellt von Changelly
 $swap_changelly_agreement_message: Mit der Fortsetzung stimmen Sie den %terms% und %policy% zu und verstehen, dass die Transaktion gemäß den %kyc%-Bestimmungen verifiziert werden kann.
@@ -591,6 +587,9 @@ Get Support: Hole dir Unterstützung
 $transfer_inactive_contract_error: |
   Sie haben eine Adresse im Format „EQ…“ eingegeben, aber die Adresse ist nicht aktiv, sodass die Transaktion nicht abgeschlossen wird.
   Wenn Sie unbedingt an diese Adresse senden möchten, dann geben Sie die Adresse im Format „UQ...“ ein.
+$transfer_link_expired: Transfer-Link ist abgelaufen
+$transfer_text_and_bin_exclusive: Text- und Binärdaten-Parameter können nicht zusammen verwendet werden
+$unsupported_deeplink_parameter: Dieser Deeplink enthält nicht unterstützte Parameter
 Successfully: Erfolgreich
 Unstake More: Mehr abstecken
 WrongAddress: Der Dapp hat eine Transaktion von einer anderen Wallet angefordert.
@@ -940,4 +939,7 @@ $storage_cleared_message: |
   Ihre Wallet-Daten wurden aufgrund von Browser- oder Speicherplatz-Problemen gelöscht. Bitte loggen Sie sich aus allen Wallets aus und importieren Sie sie dann manuell mit Ihren geheimen Wörtern erneut.
 
   Wenn Sie Unterstützung benötigen, kontaktieren Sie bitte %support_link%.
+Telegram Gifts: Telegram-Geschenke
 Collectibles: Sammlerstücke
+Bluetooth unavailable: Bluetooth nicht verfügbar
+$bluetooth_enable_guide: Aktivieren Sie Bluetooth in den Geräteeinstellungen und erlauben Sie der App den Zugriff auf Bluetooth.

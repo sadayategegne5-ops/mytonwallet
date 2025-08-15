@@ -1,4 +1,4 @@
-import type { ApiActivity, ApiTransactionActivity } from '../../../api/types';
+import type { ApiActivity, ApiChain, ApiTransactionActivity } from '../../../api/types';
 import type { GlobalState } from '../../types';
 import { TransferState } from '../../types';
 
@@ -13,18 +13,20 @@ import { getDoesUsePinPad } from '../../../util/biometrics';
 import { callActionInMain, callActionInNative } from '../../../util/multitab';
 import { playIncomingTransactionSound } from '../../../util/notificationSound';
 import { getIsTransactionWithPoisoning } from '../../../util/poisoningHash';
-import { getIsTonToken } from '../../../util/tokens';
+import { waitFor } from '../../../util/schedulers';
+import { getChainBySlug, getIsTonToken } from '../../../util/tokens';
 import {
   IS_DELEGATED_BOTTOM_SHEET,
   IS_DELEGATING_BOTTOM_SHEET,
 } from '../../../util/windowEnvironment';
+import { SEC } from '../../../api/constants';
 import { getIsTinyOrScamTransaction } from '../../helpers';
-import { addActionHandler, getActions, setGlobal } from '../../index';
+import { addActionHandler, getActions, getGlobal, setGlobal } from '../../index';
 import {
+  addInitialActivities,
   addNewActivities,
   addNft,
   clearIsPinAccepted,
-  putInitialActivities,
   removeActivities,
   replaceCurrentActivityId,
   replaceCurrentDomainLinkingId,
@@ -32,33 +34,29 @@ import {
   replaceCurrentSwapId,
   replaceCurrentTransferId,
   replacePendingActivities,
-  setIsInitialActivitiesLoadedTrue,
   updateAccountState,
-  updateActivitiesIsLoadingByAccount,
   updateCurrentTransfer,
 } from '../../reducers';
 import {
   selectAccountState,
+  selectAccountTokens,
   selectLocalActivitiesSlow,
   selectPendingActivitiesSlow,
   selectRecentNonLocalActivitiesSlow,
 } from '../../selectors';
 
 const TX_AGE_TO_PLAY_SOUND = 60000; // 1 min
+const PRELOAD_ACTIVITY_TOKEN_COUNT = 10;
 
 addActionHandler('apiUpdate', (global, actions, update) => {
   switch (update.type) {
     case 'initialActivities': {
       const { accountId, mainActivities, bySlug, chain } = update;
 
-      global = updateActivitiesIsLoadingByAccount(global, accountId, false);
-      global = putInitialActivities(global, accountId, mainActivities, bySlug);
-
-      if (chain) {
-        global = setIsInitialActivitiesLoadedTrue(global, accountId, chain);
-      }
-
+      global = addInitialActivities(global, accountId, mainActivities, bySlug, chain);
       setGlobal(global);
+
+      void preloadTopTokenHistory(accountId, chain);
       break;
     }
 
@@ -137,11 +135,6 @@ addActionHandler('apiUpdate', (global, actions, update) => {
         global = processCardMintingActivity(global, accountId, newConfirmedActivities);
       }
 
-      global = updateActivitiesIsLoadingByAccount(global, accountId, false);
-      if (chain) {
-        global = setIsInitialActivitiesLoadedTrue(global, accountId, chain);
-      }
-
       setGlobal(global);
       break;
     }
@@ -156,7 +149,7 @@ function notifyAboutNewActivities(global: GlobalState, newActivities: ApiActivit
   const shouldPlaySound = newActivities.some((activity) => {
     return activity.kind === 'transaction'
       && activity.isIncoming
-      && !activity.isPending
+      && activity.status === 'completed'
       && (Date.now() - activity.timestamp < TX_AGE_TO_PLAY_SOUND)
       && !(
         global.settings.areTinyTransfersHidden
@@ -220,4 +213,22 @@ function hideOutdatedLocalActivities(global: GlobalState, accountId: string, loc
   }
 
   return localActivities;
+}
+
+async function preloadTopTokenHistory(accountId: string, chain: ApiChain) {
+  await waitFor(() => !!selectAccountTokens(getGlobal(), accountId), SEC, 10);
+  const global = getGlobal();
+
+  const tokens = (selectAccountTokens(global, accountId) ?? [])
+    .slice(0, PRELOAD_ACTIVITY_TOKEN_COUNT)
+    .filter((token) => getChainBySlug(token.slug) === chain);
+
+  const { idsBySlug } = selectAccountState(global, accountId)?.activities || {};
+  const { fetchPastActivities } = getActions();
+
+  for (const { slug } of tokens) {
+    if (idsBySlug?.[slug] === undefined) {
+      fetchPastActivities({ slug });
+    }
+  }
 }

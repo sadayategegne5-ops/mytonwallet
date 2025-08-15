@@ -207,13 +207,8 @@ export function getIsActivityWithHash(activity: ApiTransactionActivity) {
 }
 
 export function getIsActivityPending(activity: ApiActivity) {
-  if (activity.kind === 'swap') {
-    // "Pending" is a blockchain term.
-    // CEX activities are never considered pending, because they are originated by the backend instead of the blockchains.
-    return !activity.cex && activity.status === 'pending';
-  } else {
-    return !!activity.isPending;
-  }
+  // "Pending" is a blockchain term. The activities originated by our backend are never considered pending in this sense.
+  return activity.status === 'pending' && !getIsBackendSwapId(activity.id);
 }
 
 /**

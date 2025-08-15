@@ -25,6 +25,7 @@ import type {
   ApiTransferToSign,
 } from '../../api/types';
 import type BleTransport from '../../lib/ledger-hw-transport-ble/BleTransport';
+import type { PossibleWalletVersion } from './constants';
 import type { LedgerTransport, LedgerWalletInfo } from './types';
 import { ApiLiquidUnstakeMode, ApiTransactionError } from '../../api/types';
 
@@ -62,9 +63,21 @@ import {
 } from '../../api/errors';
 import { parseAccountId } from '../account';
 import compareVersions from '../compareVersions';
-import { logDebugError } from '../logs';
+import { logDebug, logDebugError } from '../logs';
 import { pause } from '../schedulers';
 import { IS_ANDROID_APP } from '../windowEnvironment';
+import {
+  ATTEMPTS,
+  DEFAULT_WALLET_VERSION,
+  DEVICE_DETECT_ATTEMPTS,
+  INTERNAL_WORKCHAIN,
+  IS_BOUNCEABLE,
+  PAUSE,
+  VERSION_WITH_JETTON_ID,
+  VERSION_WITH_UNSAFE,
+  VESTING_SUBWALLET_ID,
+} from './constants';
+import { LedgerWalletVersion } from './constants';
 import { isLedgerConnectionBroken, isValidLedgerComment } from './utils';
 
 import { DnsItem } from '../../api/chains/ton/contracts/DnsItem';
@@ -90,27 +103,9 @@ type TransactionParams = {
   };
 };
 
-export type PossibleWalletVersion = 'v3R2' | 'v4R2';
-
 type PartialLocalActivity = Partial<ApiLocalTransactionParams> & {
   fee: bigint;
 };
-
-enum LedgerWalletVersion {
-  v3R2 = 'v3r2',
-  v4R2 = 'v4',
-}
-
-const INTERNAL_WORKCHAIN = 0; // workchain === -1 ? 255 : 0;
-const DEFAULT_WALLET_VERSION: PossibleWalletVersion = 'v4R2';
-
-const DEVICE_DETECT_ATTEMPTS = 3;
-const ATTEMPTS = 10;
-const PAUSE = 125;
-const IS_BOUNCEABLE = false;
-const VERSION_WITH_UNSAFE = '2.1.0';
-const VERSION_WITH_JETTON_ID = '2.2.0';
-const VESTING_SUBWALLET_ID = 0x10C;
 
 const knownJettonAddresses = KNOWN_JETTONS.map(
   ({ masterAddress }) => masterAddress.toString({ bounceable: true, urlSafe: true }),
@@ -177,6 +172,8 @@ export async function detectAvailableTransports() {
     TransportWebUSB.isSupported(),
   ]);
 
+  logDebug('LEDGER TRANSPORTS', { hid, bluetooth, webUsb });
+
   transportSupport = { hid, bluetooth, webUsb };
 
   return {
@@ -186,15 +183,15 @@ export async function detectAvailableTransports() {
 }
 
 export async function hasUsbDevice() {
-  const transportSupport = getTransportSupportOrFail();
+  const support = await getTransportSupport();
 
-  if (transportSupport.hid) {
+  if (support.hid) {
     return IS_ANDROID_APP
       ? await hasCapacitorHIDDevice()
       : await hasWebHIDDevice();
   }
 
-  if (transportSupport.webUsb) {
+  if (support.webUsb) {
     return await hasWebUsbDevice();
   }
 
@@ -208,6 +205,11 @@ function getInternalWalletVersion(version: PossibleWalletVersion) {
 export async function importLedgerWallet(network: ApiNetwork, accountIndex: number) {
   const walletInfo = await getLedgerWalletInfo(network, accountIndex);
   return callApi('importLedgerWallet', network, walletInfo);
+}
+
+export function openSystemBluetoothSettings() {
+  if (!BleConnector) return;
+  void BleConnector.openSettings();
 }
 
 export async function reconnectLedger() {
@@ -234,7 +236,7 @@ export async function reconnectLedger() {
 }
 
 export async function connectLedger(preferredTransport?: LedgerTransport) {
-  const transportSupport = getTransportSupportOrFail();
+  const support = await getTransportSupport();
 
   if (preferredTransport) currentLedgerTransport = preferredTransport;
 
@@ -246,9 +248,9 @@ export async function connectLedger(preferredTransport?: LedgerTransport) {
 
       case 'usb':
       default:
-        if (transportSupport.hid) {
+        if (support.hid) {
           transport = await connectHID();
-        } else if (transportSupport.webUsb) {
+        } else if (support.webUsb) {
           transport = await connectWebUsb();
         }
         break;
@@ -1184,11 +1186,11 @@ function hasCapacitorHIDDevice() {
   return tryDetectDevice(listLedgerDevices);
 }
 
-function getTransportSupportOrFail() {
-  // detectAvailableTransports must be called before calling this function
+async function getTransportSupport() {
+  // Ensure transports support is detected lazily if missing
   if (!transportSupport) {
-    throw new Error('detectAvailableTransports not called');
+    await detectAvailableTransports();
   }
 
-  return transportSupport;
+  return transportSupport!;
 }

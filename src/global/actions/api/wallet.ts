@@ -5,22 +5,18 @@ import type {
   ApiTokenWithPrice,
 } from '../../../api/types';
 
-import { getIsActivitySuitableForFetchingTimestamp } from '../../../util/activities';
 import { compareActivities } from '../../../util/compareActivities';
-import {
-  buildCollectionByKey, extractKey, findLast, unique,
-} from '../../../util/iteratees';
+import { unique } from '../../../util/iteratees';
 import { getIsTransactionWithPoisoning } from '../../../util/poisoningHash';
-import { onTickEnd, pause } from '../../../util/schedulers';
+import { pause, throttle, waitFor } from '../../../util/schedulers';
 import { buildUserToken } from '../../../util/tokens';
 import { callApi } from '../../../api';
+import { SEC } from '../../../api/constants';
 import { getIsTinyOrScamTransaction } from '../../helpers';
 import { addActionHandler, getGlobal, setGlobal } from '../../index';
 import {
+  addPastActivities,
   changeBalance,
-  updateAccountState,
-  updateActivitiesIsHistoryEndReached,
-  updateActivitiesIsLoading,
   updateCurrentAccountSettings,
   updateCurrentAccountState,
   updateCurrentSignature,
@@ -28,41 +24,65 @@ import {
 } from '../../reducers';
 import { updateTokenInfo } from '../../reducers/tokens';
 import {
+  selectAccount,
   selectAccountState,
-  selectAccountTxTokenSlugs,
   selectCurrentAccountSettings,
   selectCurrentAccountState,
-  selectLastMainTxTimestamp,
-  selectToken,
+  selectIsHistoryEndReached,
+  selectLastActivityTimestamp,
 } from '../../selectors';
 
 const IMPORT_TOKEN_PAUSE = 250;
+const PAST_ACTIVITY_DELAY = 200;
+const PAST_ACTIVITY_BATCH = 50;
 
-addActionHandler('fetchTokenTransactions', async (global, actions, { limit, slug, shouldLoadWithBudget }) => {
-  global = updateActivitiesIsLoading(global, true);
-  setGlobal(global);
+const pastActivityThrottle: Record<string, NoneToVoidFunction> = {};
+const initialActivityWaitingByAccountId: Record<string, Promise<unknown>> = {};
 
+addActionHandler('fetchPastActivities', (global, actions, { slug, shouldLoadWithBudget }) => {
   const accountId = global.currentAccountId!;
+  const throttleKey = `${accountId} ${slug ?? '__main__'}`;
 
-  let { idsBySlug = {}, byId = {} } = selectAccountState(global, accountId)?.activities || {};
+  // Besides the throttling itself, the `throttle` avoids concurrent activity loading
+  pastActivityThrottle[throttleKey] ||= throttle(
+    fetchPastActivities.bind(undefined, accountId, slug),
+    PAST_ACTIVITY_DELAY,
+    true,
+  );
+
+  pastActivityThrottle[throttleKey]();
+  if (shouldLoadWithBudget) {
+    pastActivityThrottle[throttleKey]();
+  }
+});
+
+async function fetchPastActivities(accountId: string, slug?: string) {
+  // To avoid gaps in the history, we need to wait until the initial activities are loaded. The worker starts watching
+  // for new activities at the moment the initial activities are loaded. This also prevents requesting the activities
+  // that the worker is already loading.
+  await waitInitialActivityLoading(accountId);
+
+  let global = getGlobal();
+
+  if (selectIsHistoryEndReached(global, accountId, slug)) {
+    return;
+  }
+
+  const fetchedActivities: ApiActivity[] = [];
+  let toTimestamp = selectLastActivityTimestamp(global, accountId, slug);
   let shouldFetchMore = true;
-  let fetchedActivities: ApiActivity[] = [];
-  let tokenIds = idsBySlug[slug] || [];
-  const toTxId = findLast(tokenIds, (id) => getIsActivitySuitableForFetchingTimestamp(byId[id]));
-  let toTimestamp = toTxId ? byId[toTxId].timestamp : undefined;
-  const { chain } = selectToken(global, slug);
+  let isEndReached = false;
 
   while (shouldFetchMore) {
-    const result = await callApi('fetchActivitySlice', accountId, chain, slug, toTimestamp, limit);
+    const result = await callApi('fetchPastActivities', accountId, PAST_ACTIVITY_BATCH, slug, toTimestamp);
+    if (!result) {
+      return;
+    }
 
     global = getGlobal();
 
-    if (!result || 'error' in result) {
-      break;
-    }
-
     if (!result.length) {
-      global = updateActivitiesIsHistoryEndReached(global, true, slug);
+      isEndReached = true;
       break;
     }
 
@@ -78,123 +98,16 @@ addActionHandler('fetchTokenTransactions', async (global, actions, { limit, slug
       return !shouldHide;
     });
 
-    fetchedActivities = fetchedActivities.concat(result);
-    shouldFetchMore = filteredResult.length < limit && fetchedActivities.length < limit;
-
-    tokenIds = unique(tokenIds.concat(filteredResult.map((tx) => tx.id)));
+    fetchedActivities.push(...result);
+    shouldFetchMore = filteredResult.length < PAST_ACTIVITY_BATCH && fetchedActivities.length < PAST_ACTIVITY_BATCH;
     toTimestamp = result[result.length - 1].timestamp;
   }
 
   fetchedActivities.sort(compareActivities);
 
-  global = updateActivitiesIsLoading(global, false);
-
-  const newById = buildCollectionByKey(fetchedActivities, 'id');
-  const newOrderedIds = Object.keys(newById);
-  const currentActivities = selectAccountState(global, accountId)?.activities;
-  byId = { ...(currentActivities?.byId || {}), ...newById };
-
-  idsBySlug = currentActivities?.idsBySlug || {};
-  tokenIds = unique((idsBySlug[slug] || []).concat(newOrderedIds));
-
-  tokenIds.sort((a, b) => compareActivities(byId[a], byId[b]));
-
-  global = updateAccountState(global, accountId, {
-    activities: {
-      ...currentActivities,
-      byId,
-      idsBySlug: { ...idsBySlug, [slug]: tokenIds },
-    },
-  });
-
+  global = addPastActivities(global, accountId, slug, fetchedActivities, isEndReached);
   setGlobal(global);
-
-  if (shouldLoadWithBudget) {
-    onTickEnd(() => {
-      actions.fetchTokenTransactions({ limit, slug });
-    });
-  }
-});
-
-addActionHandler('fetchAllTransactions', async (global, actions, { limit, shouldLoadWithBudget }) => {
-  global = updateActivitiesIsLoading(global, true);
-  setGlobal(global);
-
-  const accountId = global.currentAccountId!;
-
-  const tronTokenSlugs = selectAccountTxTokenSlugs(global, accountId, 'tron') ?? [];
-  let toTimestamp = selectLastMainTxTimestamp(global, accountId)!;
-  let shouldFetchMore = true;
-  let fetchedActivities: ApiActivity[] = [];
-
-  while (shouldFetchMore) {
-    const result = await callApi(
-      'fetchAllActivitySlice',
-      accountId,
-      limit,
-      toTimestamp,
-      tronTokenSlugs,
-    );
-
-    global = getGlobal();
-
-    if (!result || 'error' in result) {
-      break;
-    }
-
-    if (!result.length) {
-      global = updateActivitiesIsHistoryEndReached(global, true);
-      break;
-    }
-
-    const { areTinyTransfersHidden } = global.settings;
-
-    const filteredResult = result.filter((tx) => {
-      const shouldHide = tx.kind === 'transaction'
-        && (
-          getIsTransactionWithPoisoning(tx)
-          || (areTinyTransfersHidden && getIsTinyOrScamTransaction(tx))
-        );
-
-      return !shouldHide;
-    });
-
-    fetchedActivities = fetchedActivities.concat(result);
-    shouldFetchMore = filteredResult.length < limit && fetchedActivities.length < limit;
-    toTimestamp = result[result.length - 1].timestamp;
-  }
-
-  global = updateActivitiesIsLoading(global, false);
-
-  const newById = buildCollectionByKey(fetchedActivities, 'id');
-  const currentActivities = selectAccountState(global, accountId)?.activities;
-  const byId = { ...(currentActivities?.byId || {}), ...newById };
-
-  fetchedActivities.sort(compareActivities);
-
-  const idsMain = unique((currentActivities?.idsMain ?? []).concat(extractKey(fetchedActivities, 'id')));
-
-  global = updateAccountState(global, accountId, {
-    activities: {
-      ...currentActivities,
-      byId,
-      idsMain,
-    },
-  });
-
-  setGlobal(global);
-
-  if (shouldLoadWithBudget) {
-    onTickEnd(() => {
-      actions.fetchAllTransactions({ limit });
-    });
-  }
-});
-
-addActionHandler('resetIsHistoryEndReached', (global, actions, payload) => {
-  global = updateActivitiesIsHistoryEndReached(global, false, payload?.slug);
-  setGlobal(global);
-});
+}
 
 addActionHandler('setIsBackupRequired', (global, actions, { isMnemonicChecked }) => {
   const { isBackupRequired } = selectCurrentAccountState(global) ?? {};
@@ -426,3 +339,14 @@ addActionHandler('apiUpdateWalletVersions', (global, actions, params) => {
   };
   setGlobal(global);
 });
+
+function waitInitialActivityLoading(accountId: string) {
+  initialActivityWaitingByAccountId[accountId] ||= waitFor(() => {
+    const global = getGlobal();
+
+    return !selectAccount(global, accountId) // The account has been removed, the initial activities will never appear
+      || selectAccountState(global, accountId)?.activities?.idsMain !== undefined;
+  }, SEC, 60);
+
+  return initialActivityWaitingByAccountId[accountId];
+}

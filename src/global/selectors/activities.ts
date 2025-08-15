@@ -3,7 +3,7 @@ import type { GlobalState } from '../types';
 
 import { getIsActivitySuitableForFetchingTimestamp, getIsTxIdLocal } from '../../util/activities';
 import { compact, findLast, mapValues } from '../../util/iteratees';
-import { selectAccount, selectAccountState } from './accounts';
+import { selectAccountState } from './accounts';
 
 export function selectNewestActivityTimestamps(global: GlobalState, accountId: string): ApiActivityTimestamps {
   return mapValues(
@@ -12,22 +12,20 @@ export function selectNewestActivityTimestamps(global: GlobalState, accountId: s
   );
 }
 
-export function selectLastMainTxTimestamp(global: GlobalState, accountId: string): number | undefined {
+export function selectLastActivityTimestamp(
+  global: GlobalState,
+  accountId: string,
+  tokenSlug?: string,
+): number | undefined {
   const activities = selectAccountState(global, accountId)?.activities;
   if (!activities) return undefined;
 
-  const { byId, idsMain = [] } = activities;
-  const txId = findLast(idsMain, (id) => getIsActivitySuitableForFetchingTimestamp(byId[id]));
+  const { byId, idsMain, idsBySlug } = activities;
+  const ids = (tokenSlug ? idsBySlug?.[tokenSlug] : idsMain) || [];
+  const txId = findLast(ids, (id) => getIsActivitySuitableForFetchingTimestamp(byId[id]));
   if (!txId) return undefined;
 
   return byId[txId].timestamp;
-}
-
-export function selectAccountTxTokenSlugs(global: GlobalState, accountId: string, chain: ApiChain) {
-  const idsBySlug = selectAccountState(global, accountId)?.activities?.idsBySlug;
-  if (!idsBySlug) return undefined;
-
-  return Object.keys(idsBySlug).filter((slug) => slug.startsWith(`${chain}-`));
 }
 
 export function selectLocalActivitiesSlow(global: GlobalState, accountId: string) {
@@ -64,13 +62,20 @@ export function selectRecentNonLocalActivitiesSlow(global: GlobalState, accountI
   return result;
 }
 
-export function selectIsFirstTransactionsLoaded(global: GlobalState, accountId: string) {
-  const { isFirstTransactionsLoaded } = selectAccountState(global, accountId)?.activities ?? {};
-  const { addressByChain } = selectAccount(global, accountId) ?? {};
+export function selectIsHistoryEndReached(global: GlobalState, accountId: string, tokenSlug?: string) {
+  const accountState = selectAccountState(global, accountId);
+  const { isMainHistoryEndReached, isHistoryEndReachedBySlug } = accountState?.activities ?? {};
 
-  if (!isFirstTransactionsLoaded || !addressByChain) {
-    return false;
-  }
+  return tokenSlug
+    ? !!isHistoryEndReachedBySlug?.[tokenSlug]
+    : !!isMainHistoryEndReached;
+}
 
-  return Object.keys(addressByChain).every((chain) => isFirstTransactionsLoaded[chain as ApiChain]);
+/** If returns `undefined`, the activities haven't been loaded yet. If returns `[]`, there are no activities. */
+export function selectActivityHistoryIds(global: GlobalState, accountId: string, tokenSlug?: string) {
+  const { idsMain, idsBySlug } = selectAccountState(global, accountId)?.activities ?? {};
+
+  return tokenSlug
+    ? idsBySlug?.[tokenSlug]
+    : idsMain;
 }

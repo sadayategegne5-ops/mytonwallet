@@ -133,7 +133,6 @@ Contract Initialization Data: 合約初始化數據
 $dont_have_required_token: 您沒有所需的代幣，但可以交換。
 $unknown_token_address: 未知的代幣地址。
 $dont_have_required_nft: 您沒有所需的NFT來發送。
-$state_init_requires_bin: 合同初始化數據需要"bin"參數。
 $state_init_invalid: 無效的合同初始化數據。
 $signature_warning: |
   簽署自定義資訊是非常危險的。僅當您信任其來源時才使用它。
@@ -392,7 +391,6 @@ $auth_backup_description3: |
 Swap Placed: 已提交交換
 Swapping: 進行交換
 Swapped: 已交換
-Swap Failed: 交換失敗
 Swap Again: 再次進行交換
 Terms of Use: 使用條款
 Privacy Policy: 隱私政策
@@ -416,8 +414,6 @@ $swap_changelly_to_ton_description1: 您必須在 %time% 內將 %value% 發送�
 Exchange failed and coins were refunded to your wallet.: 交換失敗，硬幣已退還到您的錢包。
 $swap_changelly_kyc_security: 請聯絡**%email%**並提供**交易ID**以通過KYC程序：
 Swap Expired: 交換過期
-Swap On Hold: 交換暫停
-Swap Refunded: 交換退款
 Address for %blockchain% transfer: "%blockchain% 傳輸位址"
 Cross-chain exchange provided by Changelly: Changelly提供的跨鏈交換
 $swap_changelly_agreement_message: 繼續操作即表示您同意 %terms% 和 %policy%，並理解該交易可能會觸發根據 %kyc% 的驗證。
@@ -581,6 +577,9 @@ Staking is not supported in Testnet.: 測試網不支援質押。
 Get Support: 得到支持
 $transfer_inactive_contract_error: |
   您以“EQ...”格式輸入了地址，但該地址未激活，因此交易將無法完成。如果您確實要傳送到該位址，請以「UQ...」格式輸入該位址。
+$transfer_link_expired: 轉帳連結已過期
+$transfer_text_and_bin_exclusive: 不能同時使用文字和二進位資料參數
+$unsupported_deeplink_parameter: 此深度連結包含不支援的參數
 Successfully: 成功地
 Unstake More: 解除質押更多
 WrongAddress: 該 dapp 請求另一個錢包進行交易。
@@ -929,4 +928,7 @@ $storage_cleared_message: |
   您的錢包資料因瀏覽器或磁碟空間問題而被清除。請從所有錢包中登出，然後使用您的助記詞手動重新匯入。
 
   如需協助，請聯繫%support_link%。
+Telegram Gifts: Telegram 禮物
 Collectibles: 收藏品
+Bluetooth unavailable: 藍牙不可用
+$bluetooth_enable_guide: 請在設備設定中開啟藍牙並允許應用程式存取藍牙。

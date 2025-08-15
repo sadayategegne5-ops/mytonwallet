@@ -486,9 +486,9 @@ function migrateCache(cached: GlobalState, initialState: GlobalState) {
     cached.stateVersion = 42;
   }
 
-  if (cached.stateVersion === 42) {
+  if (cached.stateVersion >= 42 && cached.stateVersion <= 43) {
     clearActivities();
-    cached.stateVersion = 43;
+    cached.stateVersion = 44;
   }
 
   // When adding migration here, increase `STATE_VERSION`

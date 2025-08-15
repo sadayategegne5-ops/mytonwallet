@@ -21,3 +21,14 @@ export const ACCENT_RADIOACTIVE_INDEX = 13;
 export const ACCENT_SILVER_INDEX = 14;
 export const ACCENT_GOLD_INDEX = 15;
 export const ACCENT_BNW_INDEX = 16;
+
+const excludedIndices = new Set([
+  ACCENT_RADIOACTIVE_INDEX,
+  ACCENT_SILVER_INDEX,
+  ACCENT_GOLD_INDEX,
+  ACCENT_BNW_INDEX,
+]);
+
+export const COLORS_TO_DETECT = ACCENT_COLORS.light
+  .map((color, index) => ({ color, index }))
+  .filter(({ index }) => !excludedIndices.has(index));

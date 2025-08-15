@@ -10,48 +10,59 @@ import {
 } from '../../util/activities';
 import { compareActivities } from '../../util/compareActivities';
 import { buildCollectionByKey, extractKey, mapValues, unique } from '../../util/iteratees';
-import { selectAccountState } from '../selectors';
+import { replaceActivityId } from '../helpers/misc';
+import { selectAccountOrAuthAccount, selectAccountState } from '../selectors';
 import { updateAccountState } from './misc';
 
-/*
-  Used for the initial activities insertion into `global`.
-  Token activity IDs will just be replaced.
+/**
+ * Handles the `initialActivities` update, which delivers the latest activity history after the account is added.
+ * The given activities must be neither pending nor local.
  */
-export function putInitialActivities(
+export function addInitialActivities(
   global: GlobalState,
   accountId: string,
   mainActivities: ApiActivity[],
   bySlug: Record<string, ApiActivity[]>,
+  chain: ApiChain,
 ) {
-  const allActivities = [...mainActivities, ...Object.values(bySlug).flat()];
-
   const { activities } = selectAccountState(global, accountId) || {};
-  let { byId, idsBySlug, idsMain, newestActivitiesBySlug } = activities || {};
+  let { byId, idsMain, areInitialActivitiesLoaded } = activities || {};
 
-  byId = { ...byId, ...buildCollectionByKey(allActivities, 'id') };
+  byId = { ...byId, ...buildCollectionByKey(mainActivities, 'id') };
+
+  areInitialActivitiesLoaded = {
+    ...areInitialActivitiesLoaded,
+    [chain]: true,
+  };
 
   // Activities from different blockchains arrive separately, which causes the order to be disrupted
   idsMain = mergeActivityIdsToMaxTime(extractKey(mainActivities, 'id'), idsMain ?? [], byId);
 
-  const newIdsBySlug = mapValues(bySlug, (_activities) => extractKey(_activities, 'id'));
-  idsBySlug = mergeIdsBySlug(idsBySlug, newIdsBySlug, byId);
+  // Enforcing the requirement to have the id list undefined if it hasn't loaded yet
+  if (idsMain.length === 0 && !areAllInitialActivitiesLoaded(global, accountId, areInitialActivitiesLoaded)) {
+    idsMain = undefined;
+  }
 
-  newestActivitiesBySlug = getNewestActivitiesBySlug(
-    { byId, idsBySlug, newestActivitiesBySlug },
-    Object.keys(newIdsBySlug),
-  );
-
-  return updateAccountState(global, accountId, {
+  global = updateAccountState(global, accountId, {
     activities: {
       ...activities,
       idsMain,
       byId,
-      idsBySlug,
-      newestActivitiesBySlug,
+      areInitialActivitiesLoaded,
     },
   });
+
+  for (const [slug, activities] of Object.entries(bySlug)) {
+    global = addPastActivities(global, accountId, slug, activities, activities.length === 0);
+  }
+
+  return global;
 }
 
+/**
+ * Should be used to add only newly created activities. Otherwise, there can occur gaps in the history, because the
+ * given activities are added to all the matching token histories.
+ */
 export function addNewActivities(
   global: GlobalState,
   accountId: string,
@@ -106,6 +117,51 @@ export function addNewActivities(
       newestActivitiesBySlug,
       localActivityIds,
       pendingActivityIds,
+    },
+  });
+}
+
+export function addPastActivities(
+  global: GlobalState,
+  accountId: string,
+  tokenSlug: string | undefined, // undefined for main activities
+  pastActivities: ApiActivity[], // Assuming all the activities are neither pending nor local
+  isEndReached?: boolean,
+) {
+  const { activities } = selectAccountState(global, accountId) || {};
+  let {
+    byId, idsBySlug, idsMain, newestActivitiesBySlug, isMainHistoryEndReached, isHistoryEndReachedBySlug,
+  } = activities || {};
+
+  byId = { ...byId, ...buildCollectionByKey(pastActivities, 'id') };
+
+  if (tokenSlug) {
+    idsBySlug = mergeIdsBySlug(idsBySlug, { [tokenSlug]: extractKey(pastActivities, 'id') }, byId);
+    newestActivitiesBySlug = getNewestActivitiesBySlug({ byId, idsBySlug, newestActivitiesBySlug }, [tokenSlug]);
+
+    if (isEndReached) {
+      isHistoryEndReachedBySlug = {
+        ...isHistoryEndReachedBySlug,
+        [tokenSlug]: true,
+      };
+    }
+  } else {
+    idsMain = mergeSortedActivityIds(idsMain ?? [], extractKey(pastActivities, 'id'), byId);
+
+    if (isEndReached) {
+      isMainHistoryEndReached = true;
+    }
+  }
+
+  return updateAccountState(global, accountId, {
+    activities: {
+      ...activities,
+      idsMain,
+      byId,
+      idsBySlug,
+      newestActivitiesBySlug,
+      isMainHistoryEndReached,
+      isHistoryEndReachedBySlug,
     },
   });
 }
@@ -173,25 +229,6 @@ export function removeActivities(
       newestActivitiesBySlug,
       localActivityIds,
       pendingActivityIds,
-    },
-  });
-}
-
-export function setIsInitialActivitiesLoadedTrue(global: GlobalState, accountId: string, chain: ApiChain) {
-  const { activities } = selectAccountState(global, accountId) ?? {};
-
-  if (activities?.isFirstTransactionsLoaded?.[chain]) {
-    return global;
-  }
-
-  return updateAccountState(global, accountId, {
-    activities: {
-      byId: {},
-      ...activities,
-      isFirstTransactionsLoaded: {
-        ...activities?.isFirstTransactionsLoaded,
-        [chain]: true,
-      },
     },
   });
 }
@@ -276,12 +313,9 @@ function getActivityListTokenSlugs(activityIds: Iterable<string>, byId: Record<s
 
 /** replaceMap: keys - old (removed) activity ids, value - new (added) activity ids */
 export function replaceCurrentActivityId(global: GlobalState, accountId: string, replaceMap: Record<string, string>) {
-  const { currentActivityId } = selectAccountState(global, accountId) || {};
-  const newActivityId = currentActivityId && replaceMap[currentActivityId];
-  if (newActivityId !== currentActivityId) {
-    global = updateAccountState(global, accountId, { currentActivityId: newActivityId });
-  }
-  return global;
+  return updateAccountState(global, accountId, {
+    currentActivityId: replaceActivityId(selectAccountState(global, accountId)?.currentActivityId, replaceMap),
+  });
 }
 
 function mergeIdsBySlug(
@@ -296,4 +330,15 @@ function mergeIdsBySlug(
       return mergeSortedActivityIds(newIds, oldIdsBySlug?.[slug] ?? [], activityById);
     }),
   };
+}
+
+function areAllInitialActivitiesLoaded(
+  global: GlobalState,
+  accountId: string,
+  newAreInitialActivitiesLoaded: Partial<Record<ApiChain, boolean>>,
+) {
+  // The initial activities may be loaded and added before the authentication completes
+  const { addressByChain } = selectAccountOrAuthAccount(global, accountId) ?? { addressByChain: {} };
+
+  return Object.keys(addressByChain).every((chain) => newAreInitialActivitiesLoaded[chain as ApiChain]);
 }

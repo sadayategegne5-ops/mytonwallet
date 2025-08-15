@@ -136,7 +136,6 @@ Contract Initialization Data: Sözleşme Başlatma Verileri
 $dont_have_required_token: Gerekli tokena sahip değilsiniz, ancak takas edilebilir.
 $unknown_token_address: Bilinmeyen token adresi.
 $dont_have_required_nft: Göndermek için gerekli NFT'ye sahip değilsiniz.
-$state_init_requires_bin: Sözleşme başlatma verileri "bin" parametresini gerektirir.
 $state_init_invalid: Geçersiz sözleşme başlatma verileri.
 $signature_warning: Özelleştirilmiş verilerin imzalanması çok tehlikelidir. Yalnızca kaynağına güveniyorsanız kullanın.
 Sign: İmzala
@@ -395,7 +394,6 @@ $auth_backup_description3: |
 Swap Placed: Takas emri gönderildi
 Swapping: Takas devam ediyor
 Swapped: Takas gerçekleşti
-Swap Failed: Takas başarısız oldu
 Swap Again: Yeniden takas edin
 Terms of Use: Kullanım Şartları
 Privacy Policy: Gizlilik Politikası
@@ -419,8 +417,6 @@ $swap_changelly_to_ton_description1: "%value% tutarını %time% içinde %blockch
 Exchange failed and coins were refunded to your wallet.: Takas başarısız oldu ve işlem tutarı cüzdanınıza iade edildi.
 $swap_changelly_kyc_security: "Lütfen **%email%** ile iletişime geçin ve KYC prosedürünü geçmek için **İşlem Kimliğini** sağlayın:"
 Swap Expired: Takas işleminin süresi doldu
-Swap On Hold: Takas işlemi beklemede
-Swap Refunded: Takasa konu tutar iade edildi
 Address for %blockchain% transfer: "%blockchain% aktarımının adresi"
 Cross-chain exchange provided by Changelly: Changelly tarafından sağlanan cross-chain takası
 $swap_changelly_agreement_message: Devam ederek, %terms% ve %policy%'yi kabul etmiş ve işlemin %kyc% kurallarına göre doğrulama sürecini başlatabileceğini anlamış olursunuz.
@@ -587,6 +583,9 @@ Get Support: Destek almak
 $transfer_inactive_contract_error: |
   "EQ..." formatında bir adres girdiniz ancak adres aktif olmadığından işlem tamamlanamayacaktır.
   Eğer mutlaka bu adrese gönderim yapmak istiyorsanız adresi "UQ..." formatında giriniz.
+$transfer_link_expired: Transfer bağlantısının süresi doldu
+$transfer_text_and_bin_exclusive: Metin ve ikili veri parametreleri birlikte kullanılamaz
+$unsupported_deeplink_parameter: Bu derin bağlantı desteklenmeyen parametreler içeriyor
 Successfully: Başarıyla
 Unstake More: Unstake daha fazla
 WrongAddress: Dapp başka bir cüzdandan bir işlem talep etti.
@@ -936,4 +935,7 @@ $storage_cleared_message: |
   Cüzdan verileriniz tarayıcı veya disk alanı sorunları nedeniyle temizlenmiştir. Lütfen tüm cüzdanlardan çıkış yapın ve ardından gizli kelimelerinizi kullanarak onları manuel olarak yeniden içe aktarın.
 
   Yardıma ihtiyacınız varsa, lütfen %support_link% ile iletişime geçin.
+Telegram Gifts: Telegram Hediyeleri
 Collectibles: Koleksiyonlar
+Bluetooth unavailable: Bluetooth kullanılamıyor
+$bluetooth_enable_guide: Cihaz ayarlarında Bluetooth'u açın ve uygulamanın Bluetooth'a erişmesine izin verin.

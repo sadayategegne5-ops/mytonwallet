@@ -16,6 +16,8 @@ type Props = {
   withTitle?: boolean;
 };
 
+export const ELECTRON_HEADER_HEIGHT_REM = 3;
+
 function ElectronHeader({ children, withTitle }: Props) {
   const containerRef = useRef<HTMLDivElement>();
   useElectronDrag(containerRef);

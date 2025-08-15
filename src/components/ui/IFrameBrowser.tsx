@@ -65,23 +65,30 @@ function IFrameBrowser({
   const handleMenuItemClick = useLastCallback((value: MenuHandler) => {
     if (!url) return;
 
+    const frame = iframeRef.current!;
+
     switch (value) {
       case 'reload':
-        if (iframeRef.current) {
-          // eslint-disable-next-line no-self-assign
-          iframeRef.current.src = iframeRef.current.src;
-        }
+        frame.src = 'about:blank';
+        frame.addEventListener('load', () => {
+          frame.src = url;
+        }, { once: true });
+
         break;
+
       case 'openInBrowser':
         void openUrl(url, { isExternal: true });
         break;
+
       case 'copyUrl':
         void copyTextToClipboard(url);
         showNotification({ message: lang('URL was copied!'), icon: 'icon-copy' });
         break;
+
       case 'share':
         void shareUrl(url, renderingTitle);
         break;
+
       case 'close':
         closeBrowser();
         break;

@@ -213,9 +213,6 @@ $signSizeDiff: 0.375rem;
 }
 
 .primaryFractionPart {
-  position: relative;
-  bottom: 0.0625rem;
-
   font-size: calc(2.375rem * var(--font-size-scale, 1));
   font-weight: 800;
   color: var(--second-text);

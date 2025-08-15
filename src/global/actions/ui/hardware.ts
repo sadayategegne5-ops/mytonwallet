@@ -1,7 +1,7 @@
 import type { LedgerTransport } from '../../../util/ledger/types';
 import { AppState, HardwareConnectState } from '../../types';
 
-import { IS_EXTENSION } from '../../../config';
+import { IS_CAPACITOR, IS_EXTENSION } from '../../../config';
 import { closeThisTab, onLedgerTabClose, openLedgerTab } from '../../../util/ledger/tab';
 import { isLedgerConnectionBroken } from '../../../util/ledger/utils';
 import { logDebugError } from '../../../util/logs';
@@ -51,9 +51,20 @@ addActionHandler('initializeHardwareWalletModal', async (global, actions) => {
 
   if (availableTransports.length === 0) {
     setGlobal(global);
-    actions.showNotification({
-      message: 'Ledger is not supported on this device.',
-    });
+    if (IS_CAPACITOR) {
+      actions.showDialog({
+        title: 'Bluetooth unavailable',
+        message: '$bluetooth_enable_guide',
+        buttons: {
+          confirm: { title: 'Open Settings', action: 'openBluetoothSettings' },
+          cancel: { title: 'Cancel' },
+        },
+      });
+    } else {
+      actions.showNotification({
+        message: 'Ledger is not supported on this device.',
+      });
+    }
   } else if (availableTransports.length === 1) {
     setGlobal(global);
 

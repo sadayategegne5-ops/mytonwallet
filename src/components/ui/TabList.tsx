@@ -25,6 +25,7 @@ export type TabWithProperties = {
 };
 
 type OwnProps = {
+  isActive?: boolean;
   tabs: readonly TabWithProperties[];
   activeTab: number;
   className?: string;
@@ -39,7 +40,7 @@ const SCROLL_DURATION = IS_IOS ? 450 : IS_ANDROID ? 400 : 300;
 const CLIP_PATH_CONTAINER_CLASS_NAME = 'clip-path-container';
 
 function TabList({
-  tabs, activeTab, className, overlayClassName, onSwitchTab, onActiveTabClick,
+  isActive, tabs, activeTab, className, overlayClassName, onSwitchTab, onActiveTabClick,
 }: OwnProps) {
   const lang = useLang();
   const containerRef = useRef<HTMLDivElement>();
@@ -69,7 +70,7 @@ function TabList({
       });
     }
     // When the following dependencies change, `clipPath` must be updated
-  }, [activeTab, tabs, lang, containerRef, appWidth]);
+  }, [isActive, activeTab, tabs, lang, containerRef, appWidth]);
 
   return (
     <div ref={containerRef} className={fullClassName}>

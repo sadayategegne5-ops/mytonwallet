@@ -188,6 +188,7 @@ export type ApiSubmitTransferOptions = {
   stateInit?: Cell;
   shouldEncrypt?: boolean;
   isBase64Data?: boolean;
+  noFeeCheck?: boolean;
   // For token transfer
   tokenAddress?: string;
   forwardAmount?: bigint;
@@ -226,6 +227,8 @@ export type ParsedTracePart = {
   received: bigint;
   /** The network fee in TON (the fee taken by the blockchain itself) */
   networkFee: bigint;
+  /** Whether the transaction has succeeded */
+  isSuccess: boolean;
 };
 
 export type ParsedTrace = {

@@ -71,7 +71,7 @@ export function parseRawTransaction(
 
   const timestamp = now * 1000;
   const isIncoming = !!rawTx.in_msg.source && !rawTx.out_msgs.length;
-  const inMsgHash = rawTx.in_msg.hash;
+  const inMsgHashNorm = rawTx.in_msg.hash_norm ?? rawTx.in_msg.hash;
   const msgs: TransactionMessage[] = isIncoming ? [rawTx.in_msg] : rawTx.out_msgs;
 
   if (!msgs.length) return [];
@@ -110,13 +110,14 @@ export function parseRawTransaction(
       amount: isIncoming ? BigInt(value!) : -BigInt(value!),
       slug: TONCOIN.slug,
       fee,
-      externalMsgHash: isIncoming ? undefined : inMsgHash,
+      externalMsgHashNorm: isIncoming ? undefined : inMsgHashNorm,
       normalizedAddress,
       shouldHide: exitCode ? true : undefined,
       hash,
       opCode: Number(opcode) || undefined,
       msgHash,
       type: bounced ? 'bounced' : undefined,
+      status: 'completed',
     });
 
     transactions.push(tx);

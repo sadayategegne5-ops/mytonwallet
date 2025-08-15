@@ -171,7 +171,7 @@ function Token({
 
     return (
       <span ref={yieldRef} className={labelClassName}>
-        {yieldType} {annualYield}%
+        {yieldType} {round(annualYield ?? 0, 2)}%
       </span>
     );
   }

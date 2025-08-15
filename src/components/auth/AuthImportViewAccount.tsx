@@ -111,6 +111,7 @@ function AuthImportViewAccount({
           autoCapitalize="none"
           autoComplete="off"
           autoCorrect={false}
+          enterKeyHint="done"
           onInput={handleChange}
         />
 

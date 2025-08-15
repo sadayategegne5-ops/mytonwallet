@@ -26,15 +26,15 @@ import { getIsTinyOrScamTransaction } from '../../../../global/helpers';
 import {
   selectAccounts,
   selectAccountStakingStatesBySlug,
+  selectActivityHistoryIds,
   selectCurrentAccountSettings,
   selectCurrentAccountState,
-  selectIsFirstTransactionsLoaded,
+  selectIsHistoryEndReached,
   selectIsMultichainAccount,
-  selectIsNewWallet,
 } from '../../../../global/selectors';
 import { getActivityIdReplacements } from '../../../../util/activities';
 import buildClassName from '../../../../util/buildClassName';
-import { formatHumanDay, getDayStartAt, SECOND } from '../../../../util/dateFormat';
+import { formatHumanDay, getDayStartAt } from '../../../../util/dateFormat';
 import generateUniqueId from '../../../../util/generateUniqueId';
 import { compact, swapKeysAndValues } from '../../../../util/iteratees';
 import { getIsTransactionWithPoisoning } from '../../../../util/poisoningHash';
@@ -52,7 +52,6 @@ import useLang from '../../../../hooks/useLang';
 import useLastCallback from '../../../../hooks/useLastCallback';
 import useLayoutEffectWithPrevDeps from '../../../../hooks/useLayoutEffectWithPrevDeps';
 import useSyncEffectWithPrevDeps from '../../../../hooks/useSyncEffectWithPrevDeps';
-import useThrottledCallback from '../../../../hooks/useThrottledCallback';
 import useUpdateIndicator from '../../../../hooks/useUpdateIndicator';
 
 import AnimatedIconWithPreview from '../../../ui/AnimatedIconWithPreview';
@@ -69,29 +68,26 @@ import styles from './Activities.module.scss';
 interface OwnProps {
   isActive?: boolean;
   totalTokensAmount: number;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
 }
 
 type StateProps = {
   currentAccountId: string;
   slug?: string;
-  isNewWallet: boolean;
   isMultichainAccount: boolean;
   areTinyTransfersHidden?: boolean;
   byId?: Record<string, ApiActivity>;
-  idsBySlug?: Record<string, string[]>;
-  idsMain?: string[];
+  allActivityIds?: string[];
   tokensBySlug: Record<string, ApiTokenWithPrice>;
   swapTokensBySlug?: Record<string, ApiSwapAsset>;
   currentActivityId?: string;
   savedAddresses?: SavedAddress[];
-  isMainHistoryEndReached?: boolean;
-  isHistoryEndReachedBySlug?: Record<string, boolean>;
+  isHistoryEndReached: boolean;
   alwaysShownSlugs?: string[];
   theme: Theme;
   baseCurrency?: ApiBaseCurrency;
-  isFirstTransactionsLoaded?: boolean;
   isSensitiveDataHidden?: true;
-  stakingStateBySlug?: Record<string, ApiStakingState>;
+  stakingStateBySlug: Record<string, ApiStakingState>;
   nftsByAddress?: Record<string, ApiNft>;
   accounts?: Record<string, Account>;
 };
@@ -104,7 +100,6 @@ interface ItemPosition {
 }
 
 const FURTHER_SLICE = 30;
-const THROTTLE_TIME = SECOND;
 
 const LIST_TOP_PADDING = 0.5; // rem
 const DATE_HEADER_HEIGHT = 2.125; // rem
@@ -122,31 +117,26 @@ const EMPTY_DICTIONARY = Object.freeze({});
 function Activities({
   isActive,
   currentAccountId,
-  isNewWallet,
   isMultichainAccount,
   slug,
-  idsBySlug,
-  idsMain,
   byId,
+  allActivityIds,
   tokensBySlug,
   swapTokensBySlug,
   areTinyTransfersHidden,
   currentActivityId,
   savedAddresses,
-  isMainHistoryEndReached,
-  isHistoryEndReachedBySlug,
+  isHistoryEndReached,
   alwaysShownSlugs,
   theme,
   baseCurrency,
-  isFirstTransactionsLoaded,
   isSensitiveDataHidden,
   stakingStateBySlug,
   nftsByAddress,
   accounts,
+  onScroll,
 }: Omit<OwnProps, 'totalTokensAmount'> & StateProps) {
-  const {
-    fetchTokenTransactions, fetchAllTransactions, showActivityInfo,
-  } = getActions();
+  const { fetchPastActivities, showActivityInfo } = getActions();
 
   const lang = useLang();
   const { isLandscape, isPortrait } = useDeviceScreen();
@@ -157,70 +147,44 @@ function Activities({
   const appTheme = useAppTheme(theme);
   const hasUserScrolledRef = useRef(false);
 
-  const allActivityIds = useMemo(() => {
-    let idList: string[] | undefined;
-
-    const bySlug = idsBySlug ?? {};
-
-    if (byId) {
-      if (slug) {
-        idList = bySlug[slug] ?? EMPTY_ARRAY;
-      } else {
-        idList = idsMain;
-      }
-    }
-
-    return idList;
-  }, [byId, slug, idsBySlug, idsMain]);
-
+  // As with `allActivityIds`, `undefined` means "not loaded yet" and `[]` means "no activities"
   const listItemIds = useMemo(() => {
     const activityIds = filterActivityIds(
-      allActivityIds,
-      byId,
+      allActivityIds ?? EMPTY_ARRAY,
+      byId ?? EMPTY_DICTIONARY,
       slug,
       tokensBySlug,
       areTinyTransfersHidden,
       alwaysShownSlugs,
     );
 
-    return addDatesToActivityIds(activityIds, byId);
-  }, [areTinyTransfersHidden, byId, alwaysShownSlugs, allActivityIds, slug, tokensBySlug]);
-
-  const firstListItemId = listItemIds[0] as string | undefined;
-
-  const isHistoryEndReached = useMemo(() => {
-    if (slug) {
-      return !!isHistoryEndReachedBySlug?.[slug];
+    if (!activityIds.length && !isHistoryEndReached) {
+      // When all the activities are hidden, the further activities are being loaded, so the spinner should be shown.
+      return undefined;
     }
 
-    return !!isMainHistoryEndReached;
-  }, [isHistoryEndReachedBySlug, isMainHistoryEndReached, slug]);
+    return addDatesToActivityIds(activityIds, byId);
+  }, [areTinyTransfersHidden, byId, alwaysShownSlugs, allActivityIds, slug, tokensBySlug, isHistoryEndReached]);
+
+  const firstListItemId = listItemIds?.[0];
 
   const loadMore = useLastCallback(() => {
-    if (slug) {
-      fetchTokenTransactions({ slug, limit: FURTHER_SLICE * 2, shouldLoadWithBudget: true });
-    } else {
-      fetchAllTransactions({ limit: FURTHER_SLICE * 2, shouldLoadWithBudget: true });
-    }
+    fetchPastActivities({ slug, shouldLoadWithBudget: true });
   });
 
-  const throttledLoadMore = useThrottledCallback(loadMore, [loadMore], THROTTLE_TIME, true);
-
   const [viewportIds, getMore, resetScroll] = useInfiniteScroll(
-    throttledLoadMore, listItemIds, undefined, FURTHER_SLICE, slug, isActive,
+    loadMore, listItemIds, undefined, FURTHER_SLICE, slug, isActive,
   );
 
   const getListItemKey = useListItemKeys(viewportIds ?? EMPTY_ARRAY, byId ?? EMPTY_DICTIONARY);
 
   const shouldUseAnimations = Boolean(isActive && !hasUserScrolledRef.current);
 
-  const isActivitiesEmpty = !listItemIds.length;
-
   const itemPositionById = useMemo(() => {
     const itemPositionById: Record<string, ItemPosition> = {};
     let top = 0;
 
-    listItemIds.forEach((itemId, index) => {
+    listItemIds?.forEach((itemId, index) => {
       const height = itemId.startsWith(DATE_ID_PREFIX)
         ? DATE_HEADER_HEIGHT + (index === 0 ? LIST_TOP_PADDING : 0)
         : getActivityHeight(byId![itemId]);
@@ -259,11 +223,13 @@ function Activities({
     setExtraStyles(container, { height: isLandscape ? '' : `${currentContainerHeight}rem` });
   }, [isLandscape, currentContainerHeight]);
 
+  // Requests the history when the UI shows a spinner instead of the list.
+  // Keeps requesting the history when all the currently loaded activities are hidden.
   useEffect(() => {
-    if (!isHistoryEndReached && allActivityIds && isActivitiesEmpty) {
-      throttledLoadMore();
+    if (!listItemIds?.length) {
+      loadMore();
     }
-  }, [allActivityIds, isActivitiesEmpty, isHistoryEndReached, throttledLoadMore]);
+  }, [slug, allActivityIds, listItemIds, loadMore]);
 
   // Reset scroll and scroll tracking when the tab becomes inactive
   useEffect(() => {
@@ -277,6 +243,8 @@ function Activities({
     const scrollTop = (e.target as HTMLDivElement).scrollTop;
 
     hasUserScrolledRef.current = scrollTop >= SCROLL_THRESHOLD;
+
+    onScroll?.(e);
   });
 
   const handleActivityClick = useLastCallback((id: string) => {
@@ -362,7 +330,7 @@ function Activities({
     });
   }
 
-  if (isActivitiesEmpty && !isFirstTransactionsLoaded) {
+  if (listItemIds === undefined) {
     return (
       <div className={buildClassName(styles.emptyList, styles.emptyListLoading)}>
         <Spinner />
@@ -370,33 +338,33 @@ function Activities({
     );
   }
 
-  if (isNewWallet) {
-    return (
-      <div className={buildClassName(isLandscape && styles.greeting)}>
-        <NewWalletGreeting
-          isActive={isActive}
-          isMutlichainAccount={isMultichainAccount}
-          mode={isLandscape ? 'emptyList' : 'panel'}
-        />
-      </div>
-    );
-  }
-
-  if (isHistoryEndReached && isActivitiesEmpty) {
-    return (
-      <div className={styles.emptyList}>
-        <AnimatedIconWithPreview
-          play={isActive}
-          tgsUrl={ANIMATED_STICKERS_PATHS.noData}
-          previewUrl={ANIMATED_STICKERS_PATHS.noDataPreview}
-          size={ANIMATED_STICKER_BIG_SIZE_PX}
-          className={styles.sticker}
-          noLoop={false}
-          nonInteractive
-        />
-        <p className={styles.emptyListTitle}>{lang('No Activity')}</p>
-      </div>
-    );
+  if (!listItemIds.length) {
+    if (!slug) {
+      return (
+        <div className={buildClassName(isLandscape && styles.greeting)}>
+          <NewWalletGreeting
+            isActive={isActive}
+            isMutlichainAccount={isMultichainAccount}
+            mode={isLandscape ? 'emptyList' : 'panel'}
+          />
+        </div>
+      );
+    } else {
+      return (
+        <div className={styles.emptyList}>
+          <AnimatedIconWithPreview
+            play={isActive}
+            tgsUrl={ANIMATED_STICKERS_PATHS.noData}
+            previewUrl={ANIMATED_STICKERS_PATHS.noDataPreview}
+            size={ANIMATED_STICKER_BIG_SIZE_PX}
+            className={styles.sticker}
+            noLoop={false}
+            nonInteractive
+          />
+          <p className={styles.emptyListTitle}>{lang('No Activity')}</p>
+        </div>
+      );
+    }
   }
 
   return (
@@ -419,38 +387,32 @@ function Activities({
 export default memo(
   withGlobal<OwnProps>(
     (global): StateProps => {
-      const accountId = global.currentAccountId;
+      const accountId = global.currentAccountId!;
       const accountState = selectCurrentAccountState(global);
       const accountSettings = selectCurrentAccountSettings(global);
-      const isFirstTransactionsLoaded = selectIsFirstTransactionsLoaded(global, global.currentAccountId!);
-      const isNewWallet = selectIsNewWallet(global, isFirstTransactionsLoaded);
       const slug = accountState?.currentTokenSlug;
-      const stakingStateBySlug = accountId ? selectAccountStakingStatesBySlug(global, accountId) : undefined;
-      const {
-        idsBySlug, byId, isMainHistoryEndReached, isHistoryEndReachedBySlug, idsMain,
-      } = accountState?.activities ?? {};
+      const stakingStateBySlug = selectAccountStakingStatesBySlug(global, accountId);
+      const { byId } = accountState?.activities ?? {};
       const { byAddress } = accountState?.nfts || {};
       const accounts = selectAccounts(global);
+      const isHistoryEndReached = selectIsHistoryEndReached(global, accountId, slug);
+      const allActivityIds = selectActivityHistoryIds(global, accountId, slug);
 
       return {
         isMultichainAccount: selectIsMultichainAccount(global, global.currentAccountId!),
-        currentAccountId: global.currentAccountId!,
+        currentAccountId: accountId,
         slug,
         byId,
-        isNewWallet,
-        idsBySlug,
-        idsMain,
+        allActivityIds,
         tokensBySlug: global.tokenInfo.bySlug,
         swapTokensBySlug: global.swapTokenInfo?.bySlug,
         areTinyTransfersHidden: global.settings.areTinyTransfersHidden,
         savedAddresses: accountState?.savedAddresses,
-        isMainHistoryEndReached,
-        isHistoryEndReachedBySlug,
+        isHistoryEndReached,
         currentActivityId: accountState?.currentActivityId,
         alwaysShownSlugs: accountSettings?.alwaysShownSlugs,
         theme: global.settings.theme,
         baseCurrency: global.settings.baseCurrency,
-        isFirstTransactionsLoaded,
         stakingStateBySlug,
         isSensitiveDataHidden: global.settings.isSensitiveDataHidden,
         nftsByAddress: byAddress,
@@ -472,17 +434,13 @@ export default memo(
 );
 
 function filterActivityIds(
-  allActivityIds: string[] | undefined,
-  byId: Record<string, ApiActivity> | undefined,
+  allActivityIds: readonly string[],
+  byId: Record<string, ApiActivity>,
   slug: string | undefined,
   tokensBySlug: Record<string, ApiTokenWithPrice>,
   areTinyTransfersHidden?: boolean,
   alwaysShownSlugs?: string[],
 ) {
-  if (!allActivityIds || !byId) {
-    return EMPTY_ARRAY;
-  }
-
   return allActivityIds.filter((id) => {
     const activity = byId?.[id];
     if (!activity) return false;

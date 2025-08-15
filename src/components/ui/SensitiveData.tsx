@@ -7,6 +7,7 @@ import type { SensitiveDataMaskSkin } from '../common/SensitiveDataMask';
 import buildClassName from '../../util/buildClassName';
 import buildStyle from '../../util/buildStyle';
 import { stopEvent } from '../../util/domEvents';
+import { vibrate } from '../../util/haptics';
 
 import useShowTransition from '../../hooks/useShowTransition';
 
@@ -64,6 +65,7 @@ function SensitiveData({
     stopEvent(e);
 
     setIsSensitiveDataHidden({ isHidden: false });
+    void vibrate();
   }
 
   const fullClassName = buildClassName(

@@ -613,7 +613,6 @@ function prepareTransactionForRequest(
       const payload = parsedPayloads?.[index]
         ?? (rawPayload ? await parsePayloadBase64(network, toAddress, rawPayload) : undefined);
       const { isScam } = getKnownAddressInfo(normalizedAddress) || {};
-      const transferEmulation = emulation.isFallback ? undefined : emulation.byTransactionIndex[index];
 
       return {
         toAddress,
@@ -625,7 +624,9 @@ function prepareTransactionForRequest(
         isScam,
         isDangerous: isTransferPayloadDangerous(payload),
         displayedToAddress: getTransferActualToAddress(toAddress, payload),
-        networkFee: transferEmulation?.networkFee ?? bigintDivideToNumber(emulation.networkFee, messages.length),
+        networkFee: emulation.isFallback
+          ? bigintDivideToNumber(emulation.networkFee, messages.length)
+          : emulation.byTransactionIndex[index]?.networkFee ?? 0n,
       };
     },
   ));

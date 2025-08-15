@@ -29,6 +29,7 @@ export function makeMockTransactionActivity(partial: Partial<ApiTransactionActiv
     normalizedAddress: randomBase64(36),
     amount: BigInt((isIncoming ? -1 : 1) * random(1e7, 1e10)),
     slug: sample(slugs),
+    status: 'completed',
     ...partial,
   };
 }

@@ -105,7 +105,7 @@ function useInMemoryPassword(inMemoryPasswordRef: RefObject<string | undefined>)
 }
 
 function useStorageClearedDialog(operationType?: OperationType) {
-  const { showDialog, signOut } = getActions();
+  const { showDialog } = getActions();
 
   return useLastCallback(() => {
     showDialog({
@@ -117,14 +117,10 @@ function useStorageClearedDialog(operationType?: OperationType) {
           </a>
         ),
       }),
-      footerButtons: [
-        <Button
-          isDestructive
-          onClick={() => signOut({ level: 'all' })}
-        >
-          {getTranslation('Log Out')}
-        </Button>,
-      ],
+      buttons: {
+        cancel: { title: 'Cancel' },
+        confirm: { title: 'Log Out', isDestructive: true, action: 'signOutAll' },
+      },
       noBackdropClose: true,
       isInAppLock: operationType === 'unlock',
     });

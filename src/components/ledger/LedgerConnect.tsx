@@ -210,7 +210,7 @@ function LedgerConnect({
         <Button
           isPrimary
           isLoading={isConnecting}
-          isDisabled={isConnecting || isConnected}
+          isDisabled={isConnecting || isConnected || !availableTransports?.length}
           className={styles.button}
           onClick={handleSubmit}
         >
@@ -267,7 +267,7 @@ function LedgerConnect({
           <Transition
             activeKey={!IS_CAPACITOR ? 0 : (selectedTransport !== 'bluetooth' ? 1 : 2)}
             name="semiFade"
-            className={buildClassName(styles.iconBlock, isPortrait && styles.mobile)}
+            className={buildClassName(styles.iconBlock, (isPortrait || IS_IOS) && styles.mobile)}
             slideClassName={isStatic ? styles.iconBlockSlideStatic : styles.iconBlockSlide}
           >
             <Image

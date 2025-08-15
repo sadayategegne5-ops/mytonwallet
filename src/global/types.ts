@@ -58,18 +58,23 @@ export type AnimationLevel = 0 | 1 | 2;
 export type Theme = 'light' | 'dark' | 'system';
 export type AppTheme = 'dark' | 'light';
 export type AppLayout = 'portrait' | 'landscape';
+export type DialogAction = 'openBluetoothSettings' | 'signOutAll';
 
 export type NotificationType = {
   icon?: string;
   message: string;
 };
+
 export type DialogType = {
   title?: string;
   message: string | TeactNode;
   entities?: Record<string, any>;
   noBackdropClose?: boolean;
   isInAppLock?: boolean;
-  footerButtons?: TeactNode[];
+  buttons?: {
+    confirm: { title?: string; action?: DialogAction; isDestructive?: boolean };
+    cancel?: { title?: string };
+  };
 };
 
 export type LangCode = 'en' | 'es' | 'ru' | 'zh-Hant' | 'zh-Hans' | 'tr' | 'de' | 'th' | 'uk' | 'pl';
@@ -368,19 +373,25 @@ export interface AccountState {
     bySlug: ApiBalanceBySlug;
   };
   activities?: {
-    isLoading?: boolean;
     byId: Record<string, ApiActivity>;
-    /** The array values are sorted by the activity type (newest to oldest) */
-    idsBySlug?: Record<string, string[]>;
-    /** The array values are sorted by the activity type (newest to oldest) */
+    /**
+     * The array values are sorted by the activity type (newest to oldest).
+     * Undefined means that the activities haven't been loaded, [] means that there are no activities.
+     */
     idsMain?: string[];
+    /** The record values follow the same rules as `idsMain` */
+    idsBySlug?: Record<string, string[]>;
     newestActivitiesBySlug?: Record<string, ApiActivity>;
     isMainHistoryEndReached?: boolean;
     isHistoryEndReachedBySlug?: Record<string, boolean>;
     localActivityIds?: string[];
     /** Doesn't include the local activities */
     pendingActivityIds?: Partial<Record<ApiChain, string[]>>;
-    isFirstTransactionsLoaded?: Partial<Record<ApiChain, boolean>>;
+    /**
+     * May be false when the actual activities are actually loaded (when the app has been loaded from the cache).
+     * The initial activities should be considered loaded if `idsMain` is not undefined.
+     */
+    areInitialActivitiesLoaded?: Partial<Record<ApiChain, boolean>>;
   };
   nfts?: {
     byAddress?: Record<string, ApiNft>;
@@ -941,9 +952,7 @@ export interface ActionPayloads {
   fetchTransferDieselState: { tokenSlug: string };
   setIsAuthLoading: { isLoading: true | undefined };
 
-  fetchTokenTransactions: { limit: number; slug: string; shouldLoadWithBudget?: boolean };
-  fetchAllTransactions: { limit: number; shouldLoadWithBudget?: boolean };
-  resetIsHistoryEndReached: { slug: string } | undefined;
+  fetchPastActivities: { slug?: string; shouldLoadWithBudget?: boolean };
   showActivityInfo: { id: string };
   showAnyAccountTx: { txId: string; accountId: string; network: ApiNetwork };
   showAnyAccountTokenActivity: { slug: string; accountId: string; network: ApiNetwork };

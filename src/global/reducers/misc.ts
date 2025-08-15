@@ -13,6 +13,7 @@ import isPartialDeepEqual from '../../util/isPartialDeepEqual';
 import { getChainBySlug } from '../../util/tokens';
 import {
   selectAccount,
+  selectAccountOrAuthAccount,
   selectAccountSettings,
   selectAccountState,
   selectCurrentNetwork,
@@ -377,8 +378,6 @@ export function updateCurrentAccountId(global: GlobalState, accountId: string): 
   };
 }
 
-export function doesAccountExist(global: GlobalState, accountId: string) {
-  return !!selectAccount(global, accountId)
-    || accountId === global.auth.firstNetworkAccount?.accountId
-    || accountId === global.auth.secondNetworkAccount?.accountId;
+function doesAccountExist(global: GlobalState, accountId: string) {
+  return !!selectAccountOrAuthAccount(global, accountId);
 }

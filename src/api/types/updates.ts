@@ -36,8 +36,9 @@ export type ApiUpdateBalances = {
 export type ApiUpdateInitialActivities = {
   type: 'initialActivities';
   accountId: string;
-  chain?: ApiChain;
+  chain: ApiChain;
   mainActivities: ApiActivity[];
+  /** The dictionary may contain not all tokens of the given chain */
   bySlug: Record<string, ApiActivity[]>;
 };
 

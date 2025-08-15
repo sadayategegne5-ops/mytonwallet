@@ -1,4 +1,4 @@
-@mixin _separator-base($position-offset, $inset: '') {
+@mixin _separator-base($position-offset, $inset: null) {
   content: '';
 
   position: absolute;

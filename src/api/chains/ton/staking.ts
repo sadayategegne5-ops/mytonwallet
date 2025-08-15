@@ -436,8 +436,7 @@ function buildLiquidState({
     liquidApy = commonData.liquid.loyaltyApy[loyaltyType];
   }
 
-  const fullTokenAmount = tokenBalance + unstakeRequestAmount;
-  const balance = bigintMultiplyToNumber(fullTokenAmount, currentRate);
+  const balance = bigintMultiplyToNumber(tokenBalance, currentRate) + unstakeRequestAmount;
 
   return {
     type: 'liquid',

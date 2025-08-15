@@ -15,9 +15,12 @@ const tokensCache: {
 };
 
 export async function loadTokensCache() {
-  const tokens = await tokenRepository.all();
-  await updateTokens(tokens);
-  tokensPreload.resolve();
+  try {
+    const tokens = await tokenRepository.all();
+    await updateTokens(tokens);
+  } finally {
+    tokensPreload.resolve();
+  }
 }
 
 export async function updateTokens(

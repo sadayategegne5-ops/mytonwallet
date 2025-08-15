@@ -8,6 +8,7 @@ import { getChainConfig } from '../../../util/chain';
 import { compareActivities } from '../../../util/compareActivities';
 import { fetchJson } from '../../../util/fetch';
 import { buildCollectionByKey } from '../../../util/iteratees';
+import { getTokenSlugs } from './util/tokens';
 import { fetchStoredTronWallet } from '../../common/accounts';
 import { buildTokenSlug, getTokenBySlug } from '../../common/tokens';
 
@@ -41,12 +42,10 @@ export async function getTokenTransactionSlice(
   }
 }
 
-export async function getAllTransactionSlice(
-  accountId: string,
-  toTimestamp: number,
-  limit: number,
-  tokenSlugs: string[],
-) {
+export async function getAllTransactionSlice(accountId: string, toTimestamp: number | undefined, limit: number) {
+  const { network } = parseAccountId(accountId);
+  const tokenSlugs = getTokenSlugs(network);
+
   const chunks = (await Promise.all([
     getTokenTransactionSlice(accountId, TRX.slug, toTimestamp, undefined, limit),
     ...tokenSlugs.map((slug) => getTokenTransactionSlice(
@@ -136,6 +135,7 @@ function parseRawTrxTransaction(address: string, rawTx: any): ApiTransactionActi
     fee,
     type,
     shouldHide,
+    status: 'completed',
   };
 }
 
@@ -191,6 +191,7 @@ function parseRawTrc20Transaction(address: string, rawTx: any): ApiTransactionAc
     isIncoming,
     normalizedAddress,
     fee,
+    status: 'completed',
   };
 }
 

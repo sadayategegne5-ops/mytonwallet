@@ -8,11 +8,17 @@ export default function useScrolledState(threshold = THRESHOLD) {
   const [isAtBeginning, setIsAtBeginning] = useState(true);
   const [isAtEnd, setIsAtEnd] = useState(true);
 
-  const handleScroll = useLastCallback((e: React.UIEvent<HTMLElement>) => {
-    const { scrollHeight, scrollTop, clientHeight } = e.target as HTMLElement;
+  const update = useLastCallback((element?: HTMLElement | null) => {
+    if (!element) return;
+
+    const { scrollHeight, scrollTop, clientHeight } = element;
 
     setIsAtBeginning(scrollTop < threshold);
     setIsAtEnd(scrollHeight - scrollTop - clientHeight < threshold);
+  });
+
+  const handleScroll = useLastCallback((e: React.UIEvent<HTMLElement>) => {
+    update(e.target as HTMLElement);
   });
 
   return {
@@ -20,5 +26,6 @@ export default function useScrolledState(threshold = THRESHOLD) {
     isAtEnd,
     isScrolled: !isAtBeginning,
     handleScroll,
+    update,
   };
 }

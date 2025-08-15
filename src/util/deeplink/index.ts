@@ -129,6 +129,12 @@ export function parseTonDeeplink(url: string, global: GlobalState) {
   const params = rawParseTonDeeplink(url);
   if (!params) return undefined;
 
+  if (params.hasUnsupportedParams) {
+    return {
+      error: '$unsupported_deeplink_parameter',
+    };
+  }
+
   const {
     toAddress,
     amount,
@@ -137,6 +143,7 @@ export function parseTonDeeplink(url: string, global: GlobalState) {
     jettonAddress,
     nftAddress,
     stateInit,
+    exp,
   } = params;
 
   const verifiedAddress = isValidAddressOrDomain(toAddress, 'ton') ? toAddress : undefined;
@@ -149,6 +156,11 @@ export function parseTonDeeplink(url: string, global: GlobalState) {
     binPayload,
     stateInit,
   };
+
+  // Check if both text and bin parameters are provided (mutually exclusive)
+  if (comment && binPayload) {
+    transferParams.error = '$transfer_text_and_bin_exclusive';
+  }
 
   if (jettonAddress) {
     const globalToken = jettonAddress
@@ -178,6 +190,10 @@ export function parseTonDeeplink(url: string, global: GlobalState) {
     }
   }
 
+  if (exp && Math.floor(Date.now() / 1000) > exp) {
+    transferParams.error = '$transfer_link_expired';
+  }
+
   return omitUndefined(transferParams);
 }
 
@@ -198,8 +214,15 @@ function rawParseTonDeeplink(value?: string) {
     const jettonAddress = getDeeplinkSearchParam(url, 'jetton');
     const nftAddress = getDeeplinkSearchParam(url, 'nft');
     const stateInit = getDeeplinkSearchParam(url, 'init') || getDeeplinkSearchParam(url, 'stateInit');
+    const exp = getDeeplinkSearchParam(url, 'exp');
+
+    // Check for unsupported parameters
+    const supportedParams = new Set(['amount', 'text', 'bin', 'jetton', 'nft', 'init', 'stateInit', 'exp']);
+    const urlParams = Array.from(url.searchParams.keys());
+    const hasUnsupportedParams = urlParams.some((param) => !supportedParams.has(param));
 
     return {
+      hasUnsupportedParams,
       toAddress,
       amount: amount ? BigInt(amount) : undefined,
       comment,
@@ -207,6 +230,7 @@ function rawParseTonDeeplink(value?: string) {
       nftAddress,
       binPayload: binPayload ? replaceAllSpacesWithPlus(binPayload) : undefined,
       stateInit: stateInit ? replaceAllSpacesWithPlus(stateInit) : undefined,
+      exp: exp ? Number(exp) : undefined,
     };
   } catch (err) {
     return undefined;

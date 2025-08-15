@@ -213,7 +213,7 @@ function TransferConfirm({
 
   const submitBtnText = lang(
     (isBurning || isNotcoinBurning)
-      ? 'Burn NFT'
+      ? (isNftTransfer ? 'Burn NFT' : 'Burn')
       : isGaslessWithStars
         ? 'Pay fee with %stars_symbol%'
         : 'Confirm',

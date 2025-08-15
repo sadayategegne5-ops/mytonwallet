@@ -1,6 +1,8 @@
 import React, { memo, useEffect, useRef, useState } from '../../../../lib/teact/teact';
 import { getActions } from '../../../../global';
 
+import { stopEvent } from '../../../../util/domEvents';
+
 import useFocusAfterAnimation from '../../../../hooks/useFocusAfterAnimation';
 import useLang from '../../../../hooks/useLang';
 import useLastCallback from '../../../../hooks/useLastCallback';
@@ -35,7 +37,11 @@ function AccountRenameModal({ isOpen, name, currentAccountId, onClose }: OwnProp
 
   useFocusAfterAnimation(inputRef, !isOpen);
 
-  const handleSubmit = useLastCallback(() => {
+  const handleSubmit = useLastCallback((e: React.FormEvent | React.UIEvent) => {
+    stopEvent(e);
+
+    if (newName.trim().length === 0) return;
+
     renameAccount({ accountId: currentAccountId, title: newName.trim() });
     onClose();
   });
@@ -47,26 +53,29 @@ function AccountRenameModal({ isOpen, name, currentAccountId, onClose }: OwnProp
       title={lang('Rename Wallet')}
       onClose={onClose}
     >
-      <p>{lang('You can rename this wallet for easier identification.')}</p>
-      <Input
-        ref={inputRef}
-        placeholder={lang('Name')}
-        onInput={setNewName}
-        value={newName}
-        maxLength={ACCOUNT_NAME_MAX_LENGTH}
-      />
+      <form action="#" onSubmit={handleSubmit}>
+        <p>{lang('You can rename this wallet for easier identification.')}</p>
+        <Input
+          ref={inputRef}
+          placeholder={lang('Name')}
+          onInput={setNewName}
+          value={newName}
+          maxLength={ACCOUNT_NAME_MAX_LENGTH}
+          enterKeyHint="done"
+        />
 
-      <div className={modalStyles.buttons}>
-        <Button onClick={onClose} className={modalStyles.button}>{lang('Cancel')}</Button>
-        <Button
-          onClick={handleSubmit}
-          isPrimary
-          isDisabled={newName.trim().length === 0}
-          className={modalStyles.button}
-        >
-          {lang('Save')}
-        </Button>
-      </div>
+        <div className={modalStyles.buttons}>
+          <Button onClick={onClose} className={modalStyles.button}>{lang('Cancel')}</Button>
+          <Button
+            isPrimary
+            isSubmit
+            isDisabled={newName.trim().length === 0}
+            className={modalStyles.button}
+          >
+            {lang('Save')}
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

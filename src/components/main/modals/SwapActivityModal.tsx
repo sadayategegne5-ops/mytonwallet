@@ -103,6 +103,8 @@ function SwapActivityModal({
   let isExpired = false;
   let cexTransactionId = '';
   let title = '';
+  let titleBadge: string | undefined;
+  let isTitleBadgeWarning = false;
   let cexErrorMessage = '';
   let isFromToncoin = true;
   let isCountdownFinished = false;
@@ -153,20 +155,26 @@ function SwapActivityModal({
     if (isPending) {
       title = lang('Swapping');
     } else if (isCexHold) {
-      title = lang('Swap On Hold');
+      title = lang('$swap_action');
+      titleBadge = lang('On Hold');
+      isTitleBadgeWarning = true;
     } else if (isCexError) {
       const { status: cexStatus } = renderedActivity.cex ?? {};
       if (cexStatus === 'expired' || cexStatus === 'overdue') {
-        title = lang('Swap Expired');
+        title = lang('$swap_action');
+        titleBadge = lang('Expired');
         cexErrorMessage = lang('You have not sent the coins to the specified address.');
       } else if (cexStatus === 'refunded') {
-        title = lang('Swap Refunded');
+        title = lang('$swap_action');
+        titleBadge = lang('Refunded');
         cexErrorMessage = lang('Exchange failed and coins were refunded to your wallet.');
       } else {
-        title = lang('Swap Failed');
+        title = lang('$swap_action');
+        titleBadge = lang('Failed');
       }
     } else if (isError) {
-      title = lang('Swap Failed');
+      title = lang('$swap_action');
+      titleBadge = lang('Failed');
     } else {
       title = lang('Swapped');
     }
@@ -214,6 +222,11 @@ function SwapActivityModal({
               tgsUrl={ANIMATED_STICKERS_PATHS[appTheme].iconClock}
               previewUrl={ANIMATED_STICKERS_PATHS[appTheme].preview.iconClock}
             />
+          )}
+          {!!titleBadge && (
+            <span className={buildClassName(styles.headerTitle__badge, isTitleBadgeWarning && styles.warning)}>
+              {titleBadge}
+            </span>
           )}
         </div>
         {!!timestamp && (
@@ -380,7 +393,6 @@ function SwapActivityModal({
         token={fromToken}
         precision={activity?.status === 'pending' ? 'approximate' : 'exact'}
         isLoading={shouldLoadDetails}
-        className={styles.feeField}
       />
     );
   }

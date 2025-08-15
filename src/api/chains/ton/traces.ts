@@ -43,19 +43,40 @@ export function parseTrace(options: {
     actions,
     traceDetail,
     addressBook,
-    transactions: rawTransactions,
+    transactions,
   } = options;
 
+  const byTransactionIndex = isFailedTransactionTrace(traceDetail)
+    ? parseFailedTransactions(traceDetail, transactions)
+    : parseCompletedTransactions(network, walletAddress, traceDetail, addressBook, transactions);
+
+  return {
+    actions,
+    traceDetail,
+    addressBook,
+    byTransactionIndex,
+    totalSent: byTransactionIndex.reduce((total, { sent }) => total + sent, 0n),
+    totalReceived: byTransactionIndex.reduce((total, { received }) => total + received, 0n),
+    totalNetworkFee: byTransactionIndex.reduce((total, { networkFee }) => total + networkFee, 0n),
+  };
+}
+
+function isFailedTransactionTrace(traceDetails: TraceDetail) {
+  return traceDetails.children.length === 0;
+}
+
+function parseCompletedTransactions(
+  network: ApiNetwork,
+  walletAddress: string,
+  traceDetail: TraceDetail,
+  addressBook: AddressBook,
+  rawTransactions: Record<string, Transaction>,
+): ParsedTracePart[] {
   const transactions = Object.values(rawTransactions)
     .map((rawTx) => parseRawTransaction(network, rawTx, addressBook))
     .flat();
 
   const byHash = groupBy(transactions, 'hash');
-
-  let totalSent = 0n;
-  let totalReceived = 0n;
-  let totalNetworkFee = 0n;
-
   const byTransactionIndex: ParsedTracePart[] = [];
 
   let isWalletTransactionFound = false;
@@ -99,6 +120,7 @@ export function parseTrace(options: {
           sent: 0n,
           received: 0n,
           networkFee: 0n,
+          isSuccess: true,
         });
       } else {
         byTransactionIndex[index].hashes.add(hash);
@@ -107,11 +129,8 @@ export function parseTrace(options: {
       if (fromAddress === walletAddress && !isIncoming) {
         byTransactionIndex[index].sent += bigintAbs(amount);
         byTransactionIndex[index].networkFee = fee;
-        totalSent += bigintAbs(amount);
-        totalNetworkFee += fee;
       } else if (toAddress === walletAddress && isIncoming && type !== 'bounced') {
         byTransactionIndex[index].received += bigintAbs(amount);
-        totalReceived += bigintAbs(amount);
       }
 
       const child = _traceDetail.children.find(({ in_msg_hash }) => in_msg_hash === msgHash);
@@ -123,13 +142,24 @@ export function parseTrace(options: {
 
   processTrace(traceDetail);
 
-  return {
-    actions,
-    traceDetail,
-    addressBook,
-    byTransactionIndex,
-    totalSent,
-    totalReceived,
-    totalNetworkFee,
-  };
+  return byTransactionIndex;
+}
+
+function parseFailedTransactions(
+  traceDetails: TraceDetail,
+  rawTransactions: Record<string, Transaction>,
+): ParsedTracePart[] {
+  const txHash = traceDetails.tx_hash;
+  const rawTx = rawTransactions[txHash];
+
+  // The root transaction can represent multiple actual failed transactions. Instead, the returned array contains only
+  // one item. The actual number of failed transactions can be obtained by parsing `rawTx.in_msg.message_content.body`
+  // probably, but this is not needed, so the code is simplified.
+  return [{
+    hashes: new Set([txHash]),
+    sent: 0n,
+    received: 0n,
+    networkFee: BigInt(rawTx.total_fees),
+    isSuccess: false,
+  }];
 }

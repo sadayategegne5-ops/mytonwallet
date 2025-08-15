@@ -164,7 +164,7 @@ export const PROXY_HOSTS = process.env.PROXY_HOSTS;
 export const TINY_TRANSFER_MAX_COST = 0.01;
 
 export const IMAGE_CACHE_NAME = 'mtw-image';
-export const LANG_CACHE_NAME = 'mtw-lang-222';
+export const LANG_CACHE_NAME = 'mtw-lang-225';
 
 export const LANG_LIST: LangItem[] = [{
   langCode: 'en',
@@ -340,7 +340,7 @@ const TRC20_USDT = {
   chain: 'tron',
 } as const;
 
-const TON_USDT = {
+export const TON_USDT = {
   name: 'Tether USD',
   symbol: 'USD₮',
   chain: 'ton',
@@ -601,6 +601,9 @@ export const PRICELESS_TOKEN_HASHES = new Set([
   'dba3adb2c917db80fd71a6a68c1fc9e12976491a8309d5910f9722efc084ce4d', // FIVA YT eUSDT EQCwUSc2qrY5rn9BfFBG9ARAHePTUvITDl97UD0zOreWzLru
   '7da9223b90984d6a144e71611a8d7c65a6298cad734faed79438dc0f7a8e53d1', // FIVA LP eUSDT EQBNlIZxIbQGQ78cXgG3VRcyl8A0kLn_6BM9kabiHHhWC4qY
   'ddf80de336d580ab3c11d194f189c362e2ca1225cae224ea921deeaba7eca818', // tsUSDe EQDQ5UUyPHrLcQJlPAczd_fjxn8SLrlNQwolBznxCdSlfQwr
+  'eb9d9891a32ec94425c09735f6ade73f4c171da0091f874d6e9d25247d583990', // Affluent TON Lending Vault EQADQ6JcK0NMuNM5uwCcS9bjcn2RTvcxYIZjNlhIhywUrfBN
+  'f66c149de251ffd031bdb34b79abe43a062ba16b815433691e3ec40a77f01d71', // Affluent Ethena Multiply Vault EQDXmtbt1-WSP00tSh6N6FH-4lX7LbnrjORClmtmuZqg4Ymm
+  'bca42dbdcbc0d885aaffb1eeeb027d9f338c2dd68701a05641c1d1c3171a7400', // Affluent TON Multiply Vault EQDtxQqkgIRQQR5hWlrQxiJMtLwjR3rEYNUBbEcvPDwCs1Ng
 ]);
 
 export const STAKED_TOKEN_SLUGS = new Set([
@@ -690,3 +693,8 @@ export const TON_DNS_ZONES = IS_CORE_WALLET
 
 export const DEFAULT_AUTOLOCK_OPTION: AutolockValueType = '3';
 export const WRONG_ATTEMPTS_BEFORE_LOG_OUT_SUGGESTION = 2;
+
+export const UNKNOWN_TOKEN = {
+  symbol: '[Unknown]',
+  decimals: 9,
+} as const;

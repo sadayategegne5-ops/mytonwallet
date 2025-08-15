@@ -53,3 +53,9 @@ export function closeAllOverlays() {
     getActions().closeMediaViewer(),
   ]);
 }
+
+/** replaceMap: keys - old (removed) activity ids, value - new (added) activity ids */
+export function replaceActivityId(oldId: string | undefined, replaceMap: Record<string, string>) {
+  const newId = oldId && replaceMap[oldId];
+  return newId || oldId;
+}

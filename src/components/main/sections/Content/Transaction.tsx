@@ -12,8 +12,7 @@ import type {
   ApiYieldType,
 } from '../../../../api/types';
 import type { Account, AppTheme, SavedAddress } from '../../../../global/types';
-import type { Color as PendingIndicatorColor } from './ActivityPendingIndicator';
-import { MediaType } from '../../../../global/types';
+import type { Color as PendingIndicatorColor } from './ActivityStatusIcon';
 
 import {
   FRACTION_DIGITS,
@@ -41,6 +40,7 @@ import { getDnsDomainZone } from '../../../../util/dns';
 import { formatBaseCurrencyAmount, formatCurrencyExtended } from '../../../../util/formatNumber';
 import { getLocalAddressName } from '../../../../util/getLocalAddressName';
 import getPseudoRandomNumber from '../../../../util/getPseudoRandomNumber';
+import { vibrate } from '../../../../util/haptics';
 import { shortenAddress } from '../../../../util/shortenAddress';
 
 import useLang from '../../../../hooks/useLang';
@@ -49,7 +49,7 @@ import useLastCallback from '../../../../hooks/useLastCallback';
 import TokenIcon from '../../../common/TokenIcon';
 import Button from '../../../ui/Button';
 import SensitiveData from '../../../ui/SensitiveData';
-import ActivityPendingIndicator from './ActivityPendingIndicator';
+import ActivityStatusIcon from './ActivityStatusIcon';
 
 import styles from './Activity.module.scss';
 
@@ -103,7 +103,7 @@ function Transaction({
   baseCurrency,
   onClick,
 }: OwnProps) {
-  const { openMediaViewer } = getActions();
+  const { openNftAttributesModal } = getActions();
   const lang = useLang();
 
   const {
@@ -120,7 +120,7 @@ function Transaction({
     slug,
     nft,
     extra,
-    isPending,
+    status,
   } = transaction;
 
   const isStaking = STAKING_TRANSACTION_TYPES.has(type);
@@ -145,10 +145,11 @@ function Transaction({
   const amountCols = useMemo(() => getPseudoRandomNumber(5, 13, timestamp.toString()), [timestamp]);
   const attachmentsTakeSubheader = shouldAttachmentTakeSubheader(transaction, isFuture);
   const isNoSubheaderLeft = getIsNoSubheaderLeft(transaction, isFuture);
+  const titleTense = isFuture || status === 'failed' ? 'future' : 'past';
 
   let operationColorClass: string | undefined;
   let pendingIndicatorColor: PendingIndicatorColor = 'Gray';
-  if (type === 'burn') {
+  if (status === 'failed' || type === 'burn') {
     operationColorClass = styles.colorNegative;
     pendingIndicatorColor = 'Red';
   } else if (isIncoming) {
@@ -164,7 +165,9 @@ function Transaction({
 
   const handleNftClick = useLastCallback((event: React.MouseEvent) => {
     event.stopPropagation();
-    openMediaViewer({ mediaId: nft!.address, mediaType: MediaType.Nft, txId });
+
+    void vibrate();
+    openNftAttributesModal({ nft: nft! });
   });
 
   function renderNft() {
@@ -238,8 +241,9 @@ function Transaction({
             {dnsIconText}
           </span>
         )}
-        <ActivityPendingIndicator
-          isActive={isPending}
+        <ActivityStatusIcon
+          isPending={status === 'pending'}
+          isError={status === 'failed'}
           color={pendingIndicatorColor}
           appTheme={appTheme}
         />
@@ -301,6 +305,10 @@ function Transaction({
     const children: TeactNode[] = [];
     const delimiter = `${WHOLE_PART_DELIMITER}∙${WHOLE_PART_DELIMITER}`;
 
+    if (transaction.status === 'failed') {
+      children.push(delimiter, lang('Failed'));
+    }
+
     if (shouldShowTransactionAddress(transaction).includes('list')) {
       const dexName = extra?.dex && SWAP_DEX_LABELS[extra.dex];
       const marketplaceName = extra?.marketplace && NFT_MARKETPLACE_TITLES[extra.marketplace];
@@ -333,6 +341,7 @@ function Transaction({
       children.push(delimiter, formatTime(timestamp));
     }
 
+    // Warning! Keep this function result in sync with `getIsNoSubheaderLeft`
     return (
       <div className={styles.date}>
         {children.slice(1)}
@@ -362,7 +371,7 @@ function Transaction({
             isNoSubheaderLeft && attachmentsTakeSubheader === 'none' && styles.atMiddle,
           )}
         >
-          {getTransactionTitle(transaction, isFuture ? 'future' : 'past', lang)}
+          {getTransactionTitle(transaction, titleTense, lang)}
           {isScamTransaction(transaction) && <img src={scamImg} alt={lang('Scam')} className={styles.scamImage} />}
         </div>
         {renderAmount()}
@@ -408,6 +417,7 @@ function shouldAttachmentTakeSubheader(
 
 function getIsNoSubheaderLeft(transaction: ApiTransactionActivity, isFuture?: boolean) {
   return isFuture
+    && transaction.status !== 'failed'
     && !shouldShowTransactionAddress(transaction).includes('list')
     && !shouldShowTransactionAnnualYield(transaction);
 }

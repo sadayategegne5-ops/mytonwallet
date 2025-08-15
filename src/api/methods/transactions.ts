@@ -15,13 +15,13 @@ import { parseAccountId } from '../../util/account';
 import { buildLocalTxId, mergeActivitiesToMaxTime } from '../../util/activities';
 import { getChainConfig } from '../../util/chain';
 import { logDebugError } from '../../util/logs';
+import { getChainBySlug } from '../../util/tokens';
 import chains from '../chains';
 import { fetchStoredAccount, fetchStoredAddress, fetchStoredTonWallet } from '../common/accounts';
 import { enrichActivities } from '../common/activities';
 import { buildLocalTransaction } from '../common/helpers';
 import { getPendingTransfer, waitAndCreatePendingTransfer } from '../common/pendingTransfers';
 import { FAKE_TX_ID } from '../constants';
-import { handleServerError } from '../errors';
 import { buildTokenSlug } from './tokens';
 
 let onUpdate: OnApiUpdate;
@@ -32,56 +32,50 @@ export function initTransactions(_onUpdate: OnApiUpdate) {
   onUpdate = _onUpdate;
 }
 
-export async function fetchActivitySlice(
+export async function fetchPastActivities(
   accountId: string,
-  chain: ApiChain,
-  slug: string,
-  fromTimestamp?: number,
-  limit?: number,
-): Promise<ApiActivity[] | { error: string }> {
-  let activities: ApiActivity[];
-
+  limit: number,
+  tokenSlug?: string,
+  toTimestamp?: number,
+): Promise<ApiActivity[] | undefined> {
   try {
-    if (chain === 'ton') {
-      activities = await chains[chain].fetchActivitySlice(
-        accountId, slug, fromTimestamp, undefined, limit,
-      );
-    } else {
-      activities = await chains[chain].getTokenTransactionSlice(
-        accountId, slug, fromTimestamp, undefined, limit,
-      );
-    }
+    let activities = tokenSlug
+      ? await fetchTokenActivitySlice(accountId, limit, tokenSlug, toTimestamp)
+      : await fetchAllActivitySlice(accountId, limit, toTimestamp);
 
-    activities = await enrichActivities(accountId, activities, slug);
+    activities = await enrichActivities(accountId, activities, tokenSlug);
 
     return activities;
   } catch (err) {
-    logDebugError('fetchActivitySlice', err);
-    return handleServerError(err);
+    logDebugError('fetchPastActivities', tokenSlug, err);
+    return undefined;
   }
 }
 
-export async function fetchAllActivitySlice(
+function fetchTokenActivitySlice(
   accountId: string,
   limit: number,
-  toTimestamp: number,
-  tronTokenSlugs: string[],
-): Promise<ApiActivity[] | { error: string }> {
-  try {
-    const account = await fetchStoredAccount(accountId);
+  slug: string,
+  toTimestamp?: number,
+) {
+  return getChainBySlug(slug) === 'ton'
+    ? ton.fetchActivitySlice(accountId, slug, toTimestamp, undefined, limit)
+    : tron.getTokenTransactionSlice(accountId, slug, toTimestamp, undefined, limit);
+}
 
-    const [tonActivities, tronActivities] = await Promise.all([
-      'ton' in account ? ton.fetchActivitySlice(accountId, undefined, toTimestamp, undefined, limit) : [],
-      'tron' in account ? tron.getAllTransactionSlice(accountId, toTimestamp, limit, tronTokenSlugs) : [],
-    ]);
+async function fetchAllActivitySlice(
+  accountId: string,
+  limit: number,
+  toTimestamp?: number,
+): Promise<ApiActivity[]> {
+  const account = await fetchStoredAccount(accountId);
 
-    const activities = mergeActivitiesToMaxTime(tonActivities, tronActivities);
+  const [tonActivities, tronActivities] = await Promise.all([
+    'ton' in account ? ton.fetchActivitySlice(accountId, undefined, toTimestamp, undefined, limit) : [],
+    'tron' in account ? tron.getAllTransactionSlice(accountId, toTimestamp, limit) : [],
+  ]);
 
-    return await enrichActivities(accountId, activities);
-  } catch (err) {
-    logDebugError('fetchAllActivitySlice', err);
-    return handleServerError(err);
-  }
+  return mergeActivitiesToMaxTime(tonActivities, tronActivities);
 }
 
 export function checkTransactionDraft(chain: ApiChain, options: CheckTransactionDraftOptions) {
@@ -107,6 +101,7 @@ export async function submitTransfer(
     withDiesel,
     dieselAmount,
     isGaslessWithStars,
+    noFeeCheck,
   } = options;
   const stateInit = typeof options.stateInit === 'string' ? Cell.fromBase64(options.stateInit) : options.stateInit;
 
@@ -138,6 +133,7 @@ export async function submitTransfer(
       isBase64Data,
       stateInit,
       fee,
+      noFeeCheck,
     });
   }
 
@@ -323,6 +319,12 @@ function convertEmulationActivityToLocal(
   accountId?: string,
 ): ApiActivity {
   const localTxId = buildLocalTxId(msgHashNormalized, index);
+  const commonFields = {
+    id: localTxId,
+    timestamp: Date.now(),
+    externalMsgHashNorm: msgHashNormalized,
+    status: 'pending',
+  } satisfies Partial<ApiActivity>;
 
   if (activity.kind === 'transaction') {
     let normalizedAddress = activity.normalizedAddress;
@@ -333,20 +335,14 @@ function convertEmulationActivityToLocal(
 
     return {
       ...activity,
-      id: localTxId,
+      ...commonFields,
       txId: localTxId,
-      timestamp: Date.now(),
-      externalMsgHashNorm: msgHashNormalized,
       normalizedAddress: normalizedAddress || activity.normalizedAddress,
-      isPending: true,
     };
   } else {
     return {
       ...activity,
-      id: localTxId,
-      timestamp: Date.now(),
-      externalMsgHashNorm: msgHashNormalized,
-      status: 'pending',
+      ...commonFields,
     };
   }
 }

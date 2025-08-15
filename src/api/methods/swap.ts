@@ -13,7 +13,6 @@ import type {
   ApiSwapEstimateResponse,
   ApiSwapHistoryItem,
   ApiSwapPairAsset,
-  ApiSwapTonAsset,
   ApiSwapTransfer,
   OnApiUpdate,
 } from '../types';
@@ -213,10 +212,6 @@ export function swapBuild(authToken: string, request: ApiSwapBuildRequest): Prom
 
 export function swapGetAssets(): Promise<ApiSwapAsset[]> {
   return callBackendGet('/swap/assets');
-}
-
-export function swapGetTonCurrencies(): Promise<ApiSwapTonAsset[]> {
-  return callBackendGet('/swap/ton/tokens');
 }
 
 export function swapGetPairs(symbolOrTokenAddress: string): Promise<ApiSwapPairAsset[]> {

@@ -156,7 +156,7 @@ function TransactionModal({
     timestamp,
     nft,
     shouldLoadDetails,
-    isPending,
+    status,
   } = renderedTransaction || {};
   const isActivityWithHash = Boolean(renderedTransaction && getIsActivityWithHash(renderedTransaction));
   const isOurStaking = renderedTransaction && isOurStakingTransaction(renderedTransaction);
@@ -332,6 +332,8 @@ function TransactionModal({
   });
 
   function renderHeader() {
+    const titleTense = status === 'pending' ? 'present' : status === 'failed' ? 'future' : 'past';
+
     return (
       <div
         className={buildClassName(
@@ -341,8 +343,8 @@ function TransactionModal({
       >
         <div className={buildClassName(modalStyles.title, styles.modalTitle)}>
           <div className={styles.headerTitle}>
-            {transaction && getTransactionTitle(transaction, isPending ? 'present' : 'past', lang)}
-            {isPending && (
+            {transaction && getTransactionTitle(transaction, titleTense, lang)}
+            {status === 'pending' && (
               <AnimatedIconWithPreview
                 play={isModalOpen}
                 size={ANIMATED_STICKER_TINY_ICON_PX}
@@ -351,6 +353,11 @@ function TransactionModal({
                 tgsUrl={ANIMATED_STICKERS_PATHS[appTheme].iconClock}
                 previewUrl={ANIMATED_STICKERS_PATHS[appTheme].preview.iconClock}
               />
+            )}
+            {status === 'failed' && (
+              <span className={styles.headerTitle__badge}>
+                {lang('Failed')}
+              </span>
             )}
             {isScam && isIncoming && <img src={scamImg} alt={lang('Scam')} className={styles.scamImage} />}
           </div>
@@ -389,7 +396,7 @@ function TransactionModal({
       <TransactionFee
         terms={{ native: fee }}
         token={nativeToken}
-        precision={isPending ? 'approximate' : 'exact'}
+        precision={status === 'pending' ? 'approximate' : 'exact'}
         isLoading={shouldLoadDetails}
         className={styles.feeField}
       />
@@ -510,6 +517,7 @@ function TransactionModal({
             isSensitiveDataHidden={isSensitiveDataHidden}
             isIncoming={isIncoming}
             isScam={isScam}
+            isFailed={status === 'failed'}
             amount={amount ?? 0n}
             token={token}
             status={isOurUnstaking && !shouldRenderUnstakeTimer ? lang('Successfully') : undefined}

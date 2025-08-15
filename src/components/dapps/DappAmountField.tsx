@@ -4,6 +4,8 @@ import { withGlobal } from '../../global';
 
 import type { ApiBaseCurrency, ApiTokenWithPrice } from '../../api/types';
 
+import { UNKNOWN_TOKEN } from '../../config';
+import buildClassName from '../../util/buildClassName';
 import { toBig, toDecimal } from '../../util/decimals';
 import { formatCurrency, getShortCurrencySymbol } from '../../util/formatNumber';
 import isEmptyObject from '../../util/isEmptyObject';
@@ -43,11 +45,11 @@ function DappAmountField({
       amountTerms.push(' + ');
     }
 
-    const token = tokensBySlug[tokenSlug];
+    const token = tokensBySlug[tokenSlug] ?? UNKNOWN_TOKEN;
 
     amountTerms.push(
       <span className={styles.payloadFieldTerm}>
-        {formatCurrency(toDecimal(amount, token?.decimals ?? 0), token?.symbol ?? '')}
+        {formatCurrency(toDecimal(amount, token.decimals), token.symbol)}
       </span>,
     );
   }
@@ -62,7 +64,7 @@ function DappAmountField({
       <span className={styles.label}>
         {label}
       </span>
-      <div className={styles.payloadField}>
+      <div className={buildClassName(styles.payloadField, styles.payloadField_expanded)}>
         {amountTerms}
       </div>
     </>

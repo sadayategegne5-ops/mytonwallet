@@ -136,7 +136,6 @@ Contract Initialization Data: Datos de Inicialización del Contrato
 $dont_have_required_token: No tiene el token requerido, pero se puede intercambiar.
 $unknown_token_address: Dirección de token desconocida.
 $dont_have_required_nft: No tiene el NFT requerido para enviar.
-$state_init_requires_bin: Los datos de inicialización del contrato requieren el parámetro "bin".
 $state_init_invalid: Datos de inicialización de contrato inválidos.
 Sign: Firmar
 Done!: ¡Listo!
@@ -398,7 +397,6 @@ $auth_backup_description3: |
 Swap Placed: Intercambio Colocado
 Swapping: Intercambiando
 Swapped: Intercambiado
-Swap Failed: Intercambio Fallido
 Swap Again: Intercambiar de Nuevo
 Terms of Use: Términos de Uso
 Privacy Policy: Política de Privacidad
@@ -422,8 +420,6 @@ $swap_changelly_to_ton_description1: Debe enviar %value% a esta dirección en la
 Exchange failed and coins were refunded to your wallet.: El intercambio falló y las monedas fueron reembolsadas a su billetera.
 $swap_changelly_kyc_security: "Comuníquese con **%email%** y proporcione **ID de transacción** para pasar el procedimiento KYC:"
 Swap Expired: Intercambio vencido
-Swap On Hold: Intercambio en Espera
-Swap Refunded: Intercambio reembolsado
 Address for %blockchain% transfer: Dirección para transferencia %blockchain%
 Cross-chain exchange provided by Changelly: Proporcionado por Changelly
 $swap_changelly_agreement_message: Al continuar, usted acepta los %terms% y %policy% y comprende que la transacción puede desencadenar una verificación según el %kyc%.
@@ -588,6 +584,9 @@ Get Support: Obtener apoyo
 $transfer_inactive_contract_error: |
   Ingresó una dirección en el formato "EQ...", pero la dirección no está activa, por lo que la transacción no se completará.
   Si definitivamente desea enviar a esta dirección, ingrese la dirección en el formato "UQ...".
+$transfer_link_expired: El enlace de transferencia ha expirado
+$transfer_text_and_bin_exclusive: No se pueden usar juntos los parámetros de texto y datos binarios
+$unsupported_deeplink_parameter: Este enlace profundo contiene parámetros no compatibles
 Successfully: Exitosamente
 Unstake More: Retirar más
 WrongAddress: El dapp solicitó una transacción desde otra billetera.
@@ -937,4 +936,7 @@ $storage_cleared_message: |
   Los datos de su billetera han sido borrados debido a problemas del navegador o de espacio en disco. Por favor, cierre sesión de todas las billeteras y luego impórtelas manualmente usando sus palabras secretas.
 
   Si necesita asistencia, por favor contacte a %support_link%.
+Telegram Gifts: Regalos de Telegram
 Collectibles: Coleccionables
+Bluetooth unavailable: Bluetooth no disponible
+$bluetooth_enable_guide: Active Bluetooth en la configuración del dispositivo y permita que la aplicación acceda a Bluetooth.

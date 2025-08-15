@@ -520,6 +520,8 @@ export type Transaction = {
 
 export type TransactionMessage = {
   hash: string;
+  /** Undefined if the same as `hash` */
+  hash_norm?: string;
   source: string | null;
   destination: string | null;
   value: string | null;
